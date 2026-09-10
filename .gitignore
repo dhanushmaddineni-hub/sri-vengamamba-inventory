@@ -6,3 +6,9 @@ build/
 coverage/
 *.log
 .DS_Store 
+# Prisma / AI development files
+backend/generated/
+backend/.agents/
+backend/.claude/
+backend/.cursor/
+backend/.devin/ 
