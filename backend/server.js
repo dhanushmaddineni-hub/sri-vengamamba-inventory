@@ -3,11 +3,15 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const prisma = require("./lib/prisma");
-
+const healthRoutes = require("./routes/healthRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/health", healthRoutes);  
+app.use("/api/categories", categoryRoutes);
+
 
 // Test API
 app.get("/", (req, res) => {
@@ -40,4 +44,4 @@ const PORT = 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-});
+});  
