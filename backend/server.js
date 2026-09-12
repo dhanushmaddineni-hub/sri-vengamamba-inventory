@@ -8,6 +8,8 @@ const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const supplierRoutes = require("./routes/supplierRoutes");
+const customerRoutes = require("./routes/customerRoutes");
 const app = express();
 
 app.use(cors());
@@ -25,6 +27,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/suppliers", supplierRoutes);
+app.use("/api/customers", customerRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
