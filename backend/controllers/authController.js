@@ -43,7 +43,7 @@ const register = async (req, res) => {
       data: {
         name: name.trim(),
         email: normalizedEmail,
-        passwordHash: hashedPassword,
+        password: hashedPassword,
         role: role || "STAFF",
       },
     });
@@ -94,7 +94,7 @@ const login = async (req, res) => {
       },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
@@ -103,7 +103,7 @@ const login = async (req, res) => {
 
     const passwordMatches = await bcrypt.compare(
       password,
-      user.passwordHash
+      user.password
     );
 
     if (!passwordMatches) {
