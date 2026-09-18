@@ -159,4 +159,92 @@ tbody tr:hover {
     align-items: flex-start;
     flex-direction: column;
   }
+}  /* =========================================
+   DAY 12 - PRODUCT SEARCH
+========================================= */
+
+.search-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-heading h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.search-heading p {
+  margin: 0 0 18px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.search-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.search-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+}
+
+.search-row input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.clear-search-button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #6b7280;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.clear-search-button:hover {
+  background: #4b5563;
+}
+
+.search-result-info {
+  margin-top: 14px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.search-result-info strong {
+  color: #111827;
+}
+
+
+/* =========================================
+   DAY 12 - RESPONSIVE SEARCH
+========================================= */
+
+@media (max-width: 700px) {
+  .search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-row input {
+    width: 100%;
+  }
+
+  .clear-search-button {
+    width: 100%;
+  }
 } 
