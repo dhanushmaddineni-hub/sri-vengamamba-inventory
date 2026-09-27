@@ -17,6 +17,7 @@ const customerRoutes = require("./routes/customerRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
 const saleRoutes = require("./routes/saleRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const brandRoutes = require("./routes/brandRoutes");
 
 const app = express();
 
@@ -98,6 +99,8 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/sales", saleRoutes);
 
 app.use("/api/reports", reportRoutes);
+
+app.use("/api/brands", brandRoutes);
 
 // ===============================
 // 404 ROUTE
