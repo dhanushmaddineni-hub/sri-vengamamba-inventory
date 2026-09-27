@@ -4,46 +4,86 @@ import "./App.css";
 const API_URL = "http://localhost:5000";
 
 function App() {
+  // =========================================================
+  // AUTH
+  // =========================================================
   const [token, setToken] = useState(
-    localStorage.getItem("inventory_token") || ""
+    localStorage.getItem("inventoryToken") || ""
   );
 
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("inventory_user");
-
     try {
-      return savedUser ? JSON.parse(savedUser) : null;
+      return JSON.parse(localStorage.getItem("inventoryUser")) || null;
     } catch {
       return null;
     }
   });
 
+  const [loginForm, setLoginForm] = useState({
+    email: "admin@example.com",
+    password: "admin123",
+  });
+
+  const [loginError, setLoginError] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
   const [activePage, setActivePage] = useState("dashboard");
 
-  // -----------------------------
-  // LOGIN
-  // -----------------------------
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
-
-  // -----------------------------
-  // PRODUCTS
-  // -----------------------------
-
+  // =========================================================
+  // PRODUCTS / CATEGORIES / BRANDS / INVENTORY
+  // =========================================================
   const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [productError, setProductError] = useState("");
-
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
 
+  // =========================================================
+  // SUPPLIERS
+  // =========================================================
+  const [suppliers, setSuppliers] = useState([]);
+
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState(null);
+  const [savingSupplier, setSavingSupplier] = useState(false);
+
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+
+  const [supplierFormError, setSupplierFormError] = useState("");
+  const [supplierFormSuccess, setSupplierFormSuccess] = useState("");
+
+  // =========================================================
+  // CUSTOMERS
+  // =========================================================
+  const [customers, setCustomers] = useState([]);
+
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState(null);
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const [customerForm, setCustomerForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+
+  const [customerFormError, setCustomerFormError] = useState("");
+  const [customerFormSuccess, setCustomerFormSuccess] = useState("");
+
+  // =========================================================
+  // PRODUCT FORM
+  // =========================================================
   const [showProductForm, setShowProductForm] = useState(false);
-  const [savingProduct, setSavingProduct] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [productFormSuccess, setProductFormSuccess] = useState("");
+  const [savingProduct, setSavingProduct] = useState(false);
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -57,25 +97,16 @@ function App() {
     brandId: "",
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
+  // =========================================================
+  // SEARCH / FILTER
+  // =========================================================
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [productBrandFilter, setProductBrandFilter] = useState("");
 
-  // -----------------------------
-  // SUPPLIERS / CUSTOMERS / LOCATIONS
-  // -----------------------------
-
-  const [suppliers, setSuppliers] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [locations, setLocations] = useState([]);
-
-  // -----------------------------
+  // =========================================================
   // PURCHASE
-  // -----------------------------
-
-  const [purchases, setPurchases] = useState([]);
-  const [loadingPurchases, setLoadingPurchases] = useState(false);
-  const [purchaseError, setPurchaseError] = useState("");
-  const [purchaseSuccess, setPurchaseSuccess] = useState("");
-
+  // =========================================================
   const [purchaseForm, setPurchaseForm] = useState({
     supplierId: "",
     invoiceNumber: "",
@@ -86,17 +117,17 @@ function App() {
     purchasePrice: "",
   });
 
+  const [locations, setLocations] = useState([]);
+
+  const [purchases, setPurchases] = useState([]);
+
+  const [purchaseError, setPurchaseError] = useState("");
+  const [purchaseSuccess, setPurchaseSuccess] = useState("");
   const [savingPurchase, setSavingPurchase] = useState(false);
 
-  // -----------------------------
+  // =========================================================
   // SALES
-  // -----------------------------
-
-  const [sales, setSales] = useState([]);
-  const [loadingSales, setLoadingSales] = useState(false);
-  const [saleError, setSaleError] = useState("");
-  const [saleSuccess, setSaleSuccess] = useState("");
-
+  // =========================================================
   const [saleForm, setSaleForm] = useState({
     customerId: "",
     invoiceNumber: "",
@@ -106,17 +137,40 @@ function App() {
     sellingPrice: "",
   });
 
+  const [sales, setSales] = useState([]);
+
+  const [saleError, setSaleError] = useState("");
+  const [saleSuccess, setSaleSuccess] = useState("");
   const [savingSale, setSavingSale] = useState(false);
 
-  // ============================================================
-  // LOGIN
-  // ============================================================
+  // =========================================================
+  // DASHBOARD
+  // =========================================================
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
+  // =========================================================
+  // COMMON AUTH HEADER
+  // =========================================================
+  const getHeaders = (includeJson = false) => {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (includeJson) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    return headers;
+  };
+
+  // =========================================================
+  // LOGIN
+  // =========================================================
   async function handleLogin(event) {
     event.preventDefault();
 
-    setLoginLoading(true);
     setLoginError("");
+    setLoggingIn(true);
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -124,10 +178,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify(loginForm),
       });
 
       const result = await response.json();
@@ -136,313 +187,261 @@ function App() {
         throw new Error(result.message || "Login failed");
       }
 
-      const receivedToken = result.data.token;
-      const receivedUser = result.data.user;
+      const newToken = result.data.token;
+      const newUser = result.data.user;
 
-      localStorage.setItem("inventory_token", receivedToken);
-      localStorage.setItem(
-        "inventory_user",
-        JSON.stringify(receivedUser)
-      );
+      localStorage.setItem("inventoryToken", newToken);
+      localStorage.setItem("inventoryUser", JSON.stringify(newUser));
 
-      setToken(receivedToken);
-      setUser(receivedUser);
-
-      setEmail("");
-      setPassword("");
+      setToken(newToken);
+      setUser(newUser);
+      setActivePage("dashboard");
     } catch (error) {
       console.error("Login error:", error);
       setLoginError(error.message || "Unable to login");
     } finally {
-      setLoginLoading(false);
+      setLoggingIn(false);
     }
   }
 
+  // =========================================================
+  // LOGOUT
+  // =========================================================
   function handleLogout() {
-    localStorage.removeItem("inventory_token");
-    localStorage.removeItem("inventory_user");
+    localStorage.removeItem("inventoryToken");
+    localStorage.removeItem("inventoryUser");
 
     setToken("");
     setUser(null);
-
-    setProducts([]);
-    setCategories([]);
-    setBrands([]);
-    setSuppliers([]);
-    setCustomers([]);
-    setLocations([]);
-    setPurchases([]);
-    setSales([]);
-
     setActivePage("dashboard");
   }
 
-  // ============================================================
-  // PRODUCTS
-  // ============================================================
-
+  // =========================================================
+  // FETCH PRODUCTS
+  // =========================================================
   async function fetchProducts() {
     try {
-      setLoadingProducts(true);
-      setProductError("");
-
       const response = await fetch(`${API_URL}/api/products`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getHeaders(),
       });
-
-      if (!response.ok) {
-        throw new Error(
-          `Backend returned status ${response.status}`
-        );
-      }
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error("Unable to load products");
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch products");
       }
 
-      setProducts(result.data || []);
-    } catch (error) {
-      console.error("Product loading error:", error);
+      const productData = Array.isArray(result)
+        ? result
+        : result.data || [];
 
-      setProductError(
-        "Unable to load products. Please check the backend and login token."
-      );
-    } finally {
-      setLoadingProducts(false);
+      setProducts(productData);
+    } catch (error) {
+      console.error("Fetch products error:", error);
     }
   }
 
+  // =========================================================
+  // FETCH CATEGORIES
+  // =========================================================
   async function fetchCategories() {
     try {
-      const response = await fetch(`${API_URL}/api/categories`);
-
-      if (!response.ok) {
-        throw new Error("Unable to load categories");
-      }
+      const response = await fetch(`${API_URL}/api/categories`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (Array.isArray(result)) {
-        setCategories(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setCategories(result.data);
-      } else {
-        setCategories([]);
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch categories");
       }
+
+      const categoryData = Array.isArray(result)
+        ? result
+        : result.data || [];
+
+      setCategories(categoryData);
     } catch (error) {
-      console.error("Category loading error:", error);
-      setCategories([]);
+      console.error("Fetch categories error:", error);
     }
   }
 
+  // =========================================================
+  // FETCH BRANDS
+  // =========================================================
   async function fetchBrands() {
     try {
-      const response = await fetch(`${API_URL}/api/brands`);
-
-      if (!response.ok) {
-        throw new Error("Unable to load brands");
-      }
+      const response = await fetch(`${API_URL}/api/brands`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (Array.isArray(result)) {
-        setBrands(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setBrands(result.data);
-      } else {
-        setBrands([]);
-      }
-    } catch (error) {
-      console.error("Brand loading error:", error);
-      setBrands([]);
-    }
-  }
-
-  async function fetchSuppliers() {
-    try {
-      const response = await fetch(`${API_URL}/api/suppliers`);
-
       if (!response.ok) {
-        throw new Error("Unable to load suppliers");
+        throw new Error(result.message || "Failed to fetch brands");
       }
 
-      const result = await response.json();
+      const brandData = Array.isArray(result)
+        ? result
+        : result.data || [];
 
-      if (Array.isArray(result)) {
-        setSuppliers(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setSuppliers(result.data);
-      } else {
-        setSuppliers([]);
-      }
+      setBrands(brandData);
     } catch (error) {
-      console.error("Supplier loading error:", error);
-      setSuppliers([]);
+      console.error("Fetch brands error:", error);
     }
   }
 
-  async function fetchCustomers() {
-    try {
-      const response = await fetch(`${API_URL}/api/customers`);
-
-      if (!response.ok) {
-        throw new Error("Unable to load customers");
-      }
-
-      const result = await response.json();
-
-      if (Array.isArray(result)) {
-        setCustomers(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setCustomers(result.data);
-      } else {
-        setCustomers([]);
-      }
-    } catch (error) {
-      console.error("Customer loading error:", error);
-      setCustomers([]);
-    }
-  }
-
+  // =========================================================
+  // FETCH LOCATIONS
+  // =========================================================
   async function fetchLocations() {
     try {
-      const response = await fetch(`${API_URL}/api/locations`);
-
-      if (!response.ok) {
-        throw new Error("Unable to load locations");
-      }
+      const response = await fetch(`${API_URL}/api/locations`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (Array.isArray(result)) {
-        setLocations(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setLocations(result.data);
-      } else {
-        setLocations([]);
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch locations");
       }
+
+      const locationData = Array.isArray(result)
+        ? result
+        : result.data || [];
+
+      setLocations(locationData);
     } catch (error) {
-      console.error("Location loading error:", error);
-      setLocations([]);
+      console.error("Fetch locations error:", error);
     }
   }
 
+  // =========================================================
+  // FETCH SUPPLIERS
+  // =========================================================
+  async function fetchSuppliers() {
+    try {
+      const response = await fetch(`${API_URL}/api/suppliers`, {
+        headers: getHeaders(),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to fetch suppliers");
+      }
+
+      setSuppliers(result.data || []);
+    } catch (error) {
+      console.error("Fetch suppliers error:", error);
+    }
+  }
+
+  // =========================================================
+  // FETCH CUSTOMERS
+  // =========================================================
+  async function fetchCustomers() {
+    try {
+      const response = await fetch(`${API_URL}/api/customers`, {
+        headers: getHeaders(),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to fetch customers");
+      }
+
+      setCustomers(result.data || []);
+    } catch (error) {
+      console.error("Fetch customers error:", error);
+    }
+  }
+
+  // =========================================================
+  // FETCH PURCHASES
+  // =========================================================
   async function fetchPurchases() {
     try {
-      setLoadingPurchases(true);
-      setPurchaseError("");
-
       const response = await fetch(`${API_URL}/api/purchases`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getHeaders(),
       });
-
-      if (!response.ok) {
-        throw new Error("Unable to load purchases");
-      }
 
       const result = await response.json();
 
-      if (result.success && Array.isArray(result.data)) {
-        setPurchases(result.data);
-      } else if (Array.isArray(result)) {
-        setPurchases(result);
-      } else {
-        setPurchases([]);
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch purchases");
       }
-    } catch (error) {
-      console.error("Purchase loading error:", error);
 
-      setPurchaseError(
-        "Unable to load purchase history."
-      );
-    } finally {
-      setLoadingPurchases(false);
+      const purchaseData = Array.isArray(result)
+        ? result
+        : result.data || [];
+
+      setPurchases(purchaseData);
+    } catch (error) {
+      console.error("Fetch purchases error:", error);
     }
   }
 
+  // =========================================================
+  // FETCH SALES
+  // =========================================================
   async function fetchSales() {
     try {
-      setLoadingSales(true);
-      setSaleError("");
-
       const response = await fetch(`${API_URL}/api/sales`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getHeaders(),
       });
-
-      if (!response.ok) {
-        throw new Error("Unable to load sales");
-      }
 
       const result = await response.json();
 
-      if (Array.isArray(result)) {
-        setSales(result);
-      } else if (
-        result.success &&
-        Array.isArray(result.data)
-      ) {
-        setSales(result.data);
-      } else {
-        setSales([]);
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch sales");
       }
-    } catch (error) {
-      console.error("Sales loading error:", error);
 
-      setSaleError(
-        "Unable to load sales history."
-      );
-    } finally {
-      setLoadingSales(false);
+      const salesData = Array.isArray(result)
+        ? result
+        : result.data || [];
+
+      setSales(salesData);
+    } catch (error) {
+      console.error("Fetch sales error:", error);
     }
   }
 
+  // =========================================================
+  // INITIAL DATA LOAD
+  // =========================================================
   useEffect(() => {
-    if (!token) {
-      return;
+    if (!token) return;
+
+    async function loadAllData() {
+      setDashboardLoading(true);
+
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchBrands(),
+        fetchLocations(),
+        fetchSuppliers(),
+        fetchCustomers(),
+        fetchPurchases(),
+        fetchSales(),
+      ]);
+
+      setDashboardLoading(false);
     }
 
-    fetchProducts();
-    fetchCategories();
-    fetchBrands();
-    fetchSuppliers();
-    fetchCustomers();
-    fetchLocations();
-    fetchPurchases();
-    fetchSales();
+    loadAllData();
   }, [token]);
 
-  // ============================================================
+  // =========================================================
   // PRODUCT FORM
-  // ============================================================
-
+  // =========================================================
   function handleProductFormChange(event) {
     const { name, value } = event.target;
 
-    setProductForm((previousForm) => ({
-      ...previousForm,
+    setProductForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
   }
@@ -463,18 +462,18 @@ function App() {
     setProductFormError("");
   }
 
-  function handleOpenProductForm() {
+  function handleAddProduct() {
     resetProductForm();
     setProductFormSuccess("");
     setShowProductForm(true);
   }
 
-  function handleCloseProductForm() {
+  function closeProductForm() {
     setShowProductForm(false);
     resetProductForm();
   }
 
-  async function handleCreateProduct(event) {
+  async function handleSaveProduct(event) {
     event.preventDefault();
 
     setSavingProduct(true);
@@ -482,91 +481,81 @@ function App() {
     setProductFormSuccess("");
 
     try {
+      if (!productForm.name.trim()) {
+        throw new Error("Product name is required");
+      }
+
+      if (!productForm.partNumber.trim()) {
+        throw new Error("Part number is required");
+      }
+
+      if (!productForm.mrp || Number(productForm.mrp) < 0) {
+        throw new Error("Enter a valid MRP");
+      }
+
+      if (
+        !productForm.sellingPrice ||
+        Number(productForm.sellingPrice) < 0
+      ) {
+        throw new Error("Enter a valid selling price");
+      }
+
       const response = await fetch(`${API_URL}/api/products`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getHeaders(true),
         body: JSON.stringify({
-          name: productForm.name,
-          partNumber: productForm.partNumber || null,
+          name: productForm.name.trim(),
+          partNumber: productForm.partNumber.trim(),
           description: productForm.description || null,
           vehicleModel: productForm.vehicleModel || null,
           mrp: Number(productForm.mrp),
           sellingPrice: Number(productForm.sellingPrice),
-          minimumStock: Number(
-            productForm.minimumStock || 0
-          ),
-          categoryId: Number(productForm.categoryId),
-          brandId: Number(productForm.brandId),
+          minimumStock: Number(productForm.minimumStock || 0),
+          categoryId: productForm.categoryId
+            ? Number(productForm.categoryId)
+            : null,
+          brandId: productForm.brandId
+            ? Number(productForm.brandId)
+            : null,
         }),
       });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Unable to create product"
-        );
+      if (!response.ok || result.success === false) {
+        throw new Error(result.message || "Unable to create product");
       }
 
-      resetProductForm();
-
-      setShowProductForm(false);
-
-      setProductFormSuccess(
-        "Product created successfully."
-      );
-
       await fetchProducts();
-    } catch (error) {
-      console.error("Create product error:", error);
 
-      setProductFormError(
-        error.message || "Unable to create product."
-      );
+      closeProductForm();
+
+      setProductFormSuccess("Product created successfully.");
+    } catch (error) {
+      console.error("Save product error:", error);
+      setProductFormError(error.message || "Unable to create product.");
     } finally {
       setSavingProduct(false);
     }
   }
 
-  // ============================================================
+  // =========================================================
   // PURCHASE FORM
-  // ============================================================
-
+  // =========================================================
   function handlePurchaseFormChange(event) {
     const { name, value } = event.target;
 
-    setPurchaseForm((previousForm) => ({
-      ...previousForm,
+    setPurchaseForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
-
-    if (name === "productId") {
-      const selectedProduct = products.find(
-        (product) => String(product.id) === String(value)
-      );
-
-      if (selectedProduct) {
-        setPurchaseForm((previousForm) => ({
-          ...previousForm,
-          productId: value,
-          purchasePrice: Number(
-            selectedProduct.sellingPrice || 0
-          ).toString(),
-        }));
-      }
-    }
   }
 
   function resetPurchaseForm() {
     setPurchaseForm({
       supplierId: "",
       invoiceNumber: "",
-      purchaseDate: new Date()
-        .toISOString()
-        .split("T")[0],
+      purchaseDate: new Date().toISOString().split("T")[0],
       productId: "",
       locationId: "",
       quantity: "",
@@ -574,127 +563,94 @@ function App() {
     });
   }
 
-  const purchaseTotal = useMemo(() => {
-    const quantity = Number(
-      purchaseForm.quantity || 0
-    );
-
-    const price = Number(
-      purchaseForm.purchasePrice || 0
-    );
-
-    return quantity * price;
-  }, [
-    purchaseForm.quantity,
-    purchaseForm.purchasePrice,
-  ]);
-
-  async function handleCreatePurchase(event) {
+  async function handleSavePurchase(event) {
     event.preventDefault();
 
-    setSavingPurchase(true);
     setPurchaseError("");
     setPurchaseSuccess("");
+    setSavingPurchase(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/purchases`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            supplierId: Number(
-              purchaseForm.supplierId
-            ),
-            invoiceNumber:
-              purchaseForm.invoiceNumber || null,
-            purchaseDate:
-              purchaseForm.purchaseDate,
-            items: [
-              {
-                productId: Number(
-                  purchaseForm.productId
-                ),
-                locationId: Number(
-                  purchaseForm.locationId
-                ),
-                quantity: Number(
-                  purchaseForm.quantity
-                ),
-                purchasePrice: Number(
-                  purchaseForm.purchasePrice
-                ),
-              },
-            ],
-          }),
-        }
-      );
+      if (!purchaseForm.supplierId) {
+        throw new Error("Please select a supplier.");
+      }
+
+      if (!purchaseForm.invoiceNumber.trim()) {
+        throw new Error("Invoice number is required.");
+      }
+
+      if (!purchaseForm.productId) {
+        throw new Error("Please select a product.");
+      }
+
+      if (!purchaseForm.locationId) {
+        throw new Error("Please select a location.");
+      }
+
+      if (
+        !purchaseForm.quantity ||
+        Number(purchaseForm.quantity) <= 0
+      ) {
+        throw new Error("Quantity must be greater than 0.");
+      }
+
+      if (
+        purchaseForm.purchasePrice === "" ||
+        Number(purchaseForm.purchasePrice) < 0
+      ) {
+        throw new Error("Enter a valid purchase price.");
+      }
+
+      const response = await fetch(`${API_URL}/api/purchases`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify({
+          supplierId: Number(purchaseForm.supplierId),
+          invoiceNumber: purchaseForm.invoiceNumber.trim(),
+          purchaseDate: purchaseForm.purchaseDate,
+          items: [
+            {
+              productId: Number(purchaseForm.productId),
+              locationId: Number(purchaseForm.locationId),
+              quantity: Number(purchaseForm.quantity),
+              purchasePrice: Number(purchaseForm.purchasePrice),
+            },
+          ],
+        }),
+      });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message ||
-            "Unable to create purchase"
-        );
+      if (!response.ok || result.success === false) {
+        throw new Error(result.message || "Unable to create purchase");
       }
 
-      setPurchaseSuccess(
-        "Purchase created successfully. Inventory stock has been updated."
-      );
+      await Promise.all([
+        fetchPurchases(),
+        fetchProducts(),
+      ]);
 
       resetPurchaseForm();
 
-      await fetchPurchases();
-      await fetchProducts();
-
-      setActivePage("purchases");
+      setPurchaseSuccess("Purchase created successfully.");
     } catch (error) {
-      console.error(
-        "Create purchase error:",
-        error
-      );
-
-      setPurchaseError(
-        error.message ||
-          "Unable to create purchase."
-      );
+      console.error("Save purchase error:", error);
+      setPurchaseError(error.message || "Unable to create purchase.");
     } finally {
       setSavingPurchase(false);
     }
   }
 
-  // ============================================================
-  // SALE FORM
-  // ============================================================
-
+  // =========================================================
+  // SALES FORM
+  // =========================================================
   function handleSaleFormChange(event) {
     const { name, value } = event.target;
 
-    setSaleForm((previousForm) => ({
-      ...previousForm,
+    setSaleForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
-
-    if (name === "productId") {
-      const selectedProduct = products.find(
-        (product) =>
-          String(product.id) === String(value)
-      );
-
-      if (selectedProduct) {
-        setSaleForm((previousForm) => ({
-          ...previousForm,
-          productId: value,
-          sellingPrice: Number(
-            selectedProduct.sellingPrice || 0
-          ).toString(),
-        }));
-      }
-    }
   }
 
   function resetSaleForm() {
@@ -708,1969 +664,2294 @@ function App() {
     });
   }
 
-  const saleTotal = useMemo(() => {
-    const quantity = Number(
-      saleForm.quantity || 0
-    );
-
-    const price = Number(
-      saleForm.sellingPrice || 0
-    );
-
-    return quantity * price;
-  }, [
-    saleForm.quantity,
-    saleForm.sellingPrice,
-  ]);
-
-  function getInventoryQuantity(
-    productId,
-    locationId
-  ) {
+  function getInventoryQuantity(productId, locationId) {
     const product = products.find(
-      (item) =>
-        String(item.id) === String(productId)
+      (item) => Number(item.id) === Number(productId)
     );
 
-    if (!product) {
-      return 0;
+    if (!product) return 0;
+
+    if (Array.isArray(product.inventory)) {
+      const inventoryItem = product.inventory.find(
+        (item) => Number(item.locationId) === Number(locationId)
+      );
+
+      return inventoryItem ? Number(inventoryItem.quantity || 0) : 0;
     }
 
-    const inventory = (
-      product.inventories || []
-    ).find(
-      (item) =>
-        String(item.locationId) ===
-        String(locationId)
-    );
+    if (Array.isArray(product.inventories)) {
+      const inventoryItem = product.inventories.find(
+        (item) => Number(item.locationId) === Number(locationId)
+      );
 
-    return inventory
-      ? Number(inventory.quantity || 0)
-      : 0;
+      return inventoryItem ? Number(inventoryItem.quantity || 0) : 0;
+    }
+
+    return 0;
   }
 
-  async function handleCreateSale(event) {
+  async function handleSaveSale(event) {
     event.preventDefault();
 
-    setSavingSale(true);
     setSaleError("");
     setSaleSuccess("");
+    setSavingSale(true);
 
     try {
-      const availableStock =
-        getInventoryQuantity(
-          saleForm.productId,
-          saleForm.locationId
-        );
+      if (!saleForm.invoiceNumber.trim()) {
+        throw new Error("Invoice number is required.");
+      }
+
+      if (!saleForm.productId) {
+        throw new Error("Please select a product.");
+      }
+
+      if (!saleForm.locationId) {
+        throw new Error("Please select a location.");
+      }
+
+      if (!saleForm.quantity || Number(saleForm.quantity) <= 0) {
+        throw new Error("Quantity must be greater than 0.");
+      }
 
       if (
-        Number(saleForm.quantity) >
-        availableStock
+        saleForm.sellingPrice === "" ||
+        Number(saleForm.sellingPrice) < 0
+      ) {
+        throw new Error("Enter a valid selling price.");
+      }
+
+      const availableStock = getInventoryQuantity(
+        saleForm.productId,
+        saleForm.locationId
+      );
+
+      if (
+        availableStock > 0 &&
+        Number(saleForm.quantity) > availableStock
       ) {
         throw new Error(
-          `Insufficient stock. Available stock: ${availableStock}`
+          `Only ${availableStock} units are available at this location.`
         );
       }
 
-      const response = await fetch(
-        `${API_URL}/api/sales`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            customerId:
-              saleForm.customerId
-                ? Number(
-                    saleForm.customerId
-                  )
-                : null,
-            invoiceNumber:
-              saleForm.invoiceNumber || null,
-            items: [
-              {
-                productId: Number(
-                  saleForm.productId
-                ),
-                locationId: Number(
-                  saleForm.locationId
-                ),
-                quantity: Number(
-                  saleForm.quantity
-                ),
-                sellingPrice: Number(
-                  saleForm.sellingPrice
-                ),
-              },
-            ],
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/sales`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify({
+          customerId: saleForm.customerId
+            ? Number(saleForm.customerId)
+            : null,
+          invoiceNumber: saleForm.invoiceNumber.trim(),
+          items: [
+            {
+              productId: Number(saleForm.productId),
+              locationId: Number(saleForm.locationId),
+              quantity: Number(saleForm.quantity),
+              sellingPrice: Number(saleForm.sellingPrice),
+            },
+          ],
+        }),
+      });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        (!result.sale &&
-          result.success !== true)
-      ) {
-        throw new Error(
-          result.message ||
-            "Unable to create sale"
-        );
+      if (!response.ok) {
+        throw new Error(result.message || "Unable to create sale");
       }
 
-      setSaleSuccess(
-        "Sale created successfully. Inventory stock has been updated."
-      );
+      await Promise.all([
+        fetchSales(),
+        fetchProducts(),
+      ]);
 
       resetSaleForm();
 
-      await fetchSales();
-      await fetchProducts();
-
-      setActivePage("sales");
+      setSaleSuccess("Sale created successfully.");
     } catch (error) {
-      console.error(
-        "Create sale error:",
-        error
-      );
-
-      setSaleError(
-        error.message ||
-          "Unable to create sale."
-      );
+      console.error("Save sale error:", error);
+      setSaleError(error.message || "Unable to create sale.");
     } finally {
       setSavingSale(false);
     }
   }
 
-  // ============================================================
-  // INVENTORY HELPERS
-  // ============================================================
+  // =========================================================
+  // SUPPLIER FORM
+  // =========================================================
+  function handleSupplierFormChange(event) {
+    const { name, value } = event.target;
 
-  function getTotalStock(product) {
-    if (
-      !product.inventories ||
-      product.inventories.length === 0
-    ) {
-      return 0;
-    }
-
-    return product.inventories.reduce(
-      (total, inventory) =>
-        total +
-        Number(inventory.quantity || 0),
-      0
-    );
+    setSupplierForm((previousForm) => ({
+      ...previousForm,
+      [name]: value,
+    }));
   }
 
-  function getLocationText(product) {
-    if (
-      !product.inventories ||
-      product.inventories.length === 0
-    ) {
-      return ["No location assigned"];
+  function resetSupplierForm() {
+    setSupplierForm({
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+    });
+
+    setEditingSupplierId(null);
+    setSupplierFormError("");
+  }
+
+  function handleAddSupplier() {
+    resetSupplierForm();
+    setSupplierFormSuccess("");
+    setShowSupplierForm(true);
+  }
+
+  function handleEditSupplier(supplier) {
+    setSupplierForm({
+      name: supplier.name || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+      address: supplier.address || "",
+    });
+
+    setEditingSupplierId(supplier.id);
+    setSupplierFormError("");
+    setSupplierFormSuccess("");
+    setShowSupplierForm(true);
+  }
+
+  function handleCancelSupplierForm() {
+    setShowSupplierForm(false);
+    resetSupplierForm();
+  }
+
+  async function handleSaveSupplier(event) {
+    event.preventDefault();
+
+    setSavingSupplier(true);
+    setSupplierFormError("");
+    setSupplierFormSuccess("");
+
+    try {
+      if (!supplierForm.name.trim()) {
+        throw new Error("Supplier name is required.");
+      }
+
+      const isEditing = editingSupplierId !== null;
+
+      const url = isEditing
+        ? `${API_URL}/api/suppliers/${editingSupplierId}`
+        : `${API_URL}/api/suppliers`;
+
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify({
+          name: supplierForm.name.trim(),
+          phone: supplierForm.phone || null,
+          email: supplierForm.email || null,
+          address: supplierForm.address || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to save supplier"
+        );
+      }
+
+      await fetchSuppliers();
+
+      setShowSupplierForm(false);
+      resetSupplierForm();
+
+      setSupplierFormSuccess(
+        isEditing
+          ? "Supplier updated successfully."
+          : "Supplier created successfully."
+      );
+    } catch (error) {
+      console.error("Save supplier error:", error);
+
+      setSupplierFormError(
+        error.message || "Unable to save supplier."
+      );
+    } finally {
+      setSavingSupplier(false);
     }
+  }
 
-    return product.inventories.map(
-      (inventory) => {
-        const location =
-          inventory.location;
+  async function handleDeleteSupplier(supplierId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this supplier?"
+    );
 
-        if (!location) {
-          return `Location ID: ${inventory.locationId}`;
+    if (!confirmed) return;
+
+    setSupplierFormError("");
+    setSupplierFormSuccess("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/suppliers/${supplierId}`,
+        {
+          method: "DELETE",
+          headers: getHeaders(),
         }
+      );
 
-        return (
-          `${location.name} | ` +
-          `Rack: ${
-            location.rack || "N/A"
-          } | ` +
-          `Shelf: ${
-            location.shelf || "N/A"
-          } | ` +
-          `Section: ${
-            location.section || "N/A"
-          } | ` +
-          `Qty: ${inventory.quantity}`
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to delete supplier"
         );
       }
-    );
-  }
 
-  function getFilteredProducts() {
-    const search =
-      searchTerm.trim().toLowerCase();
+      await fetchSuppliers();
 
-    if (!search) {
-      return products;
+      setSupplierFormSuccess("Supplier deleted successfully.");
+    } catch (error) {
+      console.error("Delete supplier error:", error);
+
+      setSupplierFormError(
+        error.message || "Unable to delete supplier."
+      );
     }
-
-    return products.filter(
-      (product) => {
-        const searchableText = `
-          ${product.name || ""}
-          ${product.partNumber || ""}
-          ${product.description || ""}
-          ${product.vehicleModel || ""}
-          ${product.brand?.name || ""}
-          ${product.category?.name || ""}
-          ${(product.inventories || [])
-            .map(
-              (inventory) =>
-                inventory.location?.name ||
-                ""
-            )
-            .join(" ")}
-        `.toLowerCase();
-
-        return searchableText.includes(
-          search
-        );
-      }
-    );
   }
 
-  // ============================================================
-  // DASHBOARD CALCULATIONS
-  // ============================================================
+  // =========================================================
+  // CUSTOMER FORM
+  // =========================================================
+  function handleCustomerFormChange(event) {
+    const { name, value } = event.target;
 
-  const filteredProducts =
-    getFilteredProducts();
+    setCustomerForm((previousForm) => ({
+      ...previousForm,
+      [name]: value,
+    }));
+  }
 
-  const totalProducts =
-    products.length;
-
-  const totalStock =
-    products.reduce(
-      (total, product) =>
-        total +
-        getTotalStock(product),
-      0
-    );
-
-  const lowStockProducts =
-    products.filter((product) => {
-      const stock =
-        getTotalStock(product);
-
-      const minimumStock = Number(
-        product.minimumStock || 0
-      );
-
-      return (
-        stock <= minimumStock
-      );
+  function resetCustomerForm() {
+    setCustomerForm({
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
     });
 
-  const totalInventoryValue =
-    products.reduce(
-      (total, product) => {
-        const stock =
-          getTotalStock(product);
+    setEditingCustomerId(null);
+    setCustomerFormError("");
+  }
 
-        const sellingPrice =
-          Number(
-            product.sellingPrice || 0
-          );
+  function handleAddCustomer() {
+    resetCustomerForm();
+    setCustomerFormSuccess("");
+    setShowCustomerForm(true);
+  }
 
-        return (
-          total +
-          stock * sellingPrice
-        );
-      },
-      0
-    );
+  function handleEditCustomer(customer) {
+    setCustomerForm({
+      name: customer.name || "",
+      phone: customer.phone || "",
+      email: customer.email || "",
+      address: customer.address || "",
+    });
 
-  const locationMap = {};
+    setEditingCustomerId(customer.id);
+    setCustomerFormError("");
+    setCustomerFormSuccess("");
+    setShowCustomerForm(true);
+  }
 
-  products.forEach((product) => {
-    (
-      product.inventories || []
-    ).forEach((inventory) => {
-      const locationName =
-        inventory.location?.name ||
-        `Location ${inventory.locationId}`;
+  function handleCancelCustomerForm() {
+    setShowCustomerForm(false);
+    resetCustomerForm();
+  }
 
-      if (
-        !locationMap[locationName]
-      ) {
-        locationMap[locationName] = 0;
+  async function handleSaveCustomer(event) {
+    event.preventDefault();
+
+    setSavingCustomer(true);
+    setCustomerFormError("");
+    setCustomerFormSuccess("");
+
+    try {
+      if (!customerForm.name.trim()) {
+        throw new Error("Customer name is required.");
       }
 
-      locationMap[locationName] +=
-        Number(
-          inventory.quantity || 0
+      const isEditing = editingCustomerId !== null;
+
+      const url = isEditing
+        ? `${API_URL}/api/customers/${editingCustomerId}`
+        : `${API_URL}/api/customers`;
+
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify({
+          name: customerForm.name.trim(),
+          phone: customerForm.phone || null,
+          email: customerForm.email || null,
+          address: customerForm.address || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to save customer"
         );
+      }
+
+      await fetchCustomers();
+
+      setShowCustomerForm(false);
+      resetCustomerForm();
+
+      setCustomerFormSuccess(
+        isEditing
+          ? "Customer updated successfully."
+          : "Customer created successfully."
+      );
+    } catch (error) {
+      console.error("Save customer error:", error);
+
+      setCustomerFormError(
+        error.message || "Unable to save customer."
+      );
+    } finally {
+      setSavingCustomer(false);
+    }
+  }
+
+  async function handleDeleteCustomer(customerId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this customer?"
+    );
+
+    if (!confirmed) return;
+
+    setCustomerFormError("");
+    setCustomerFormSuccess("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/customers/${customerId}`,
+        {
+          method: "DELETE",
+          headers: getHeaders(),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to delete customer"
+        );
+      }
+
+      await fetchCustomers();
+
+      setCustomerFormSuccess("Customer deleted successfully.");
+    } catch (error) {
+      console.error("Delete customer error:", error);
+
+      setCustomerFormError(
+        error.message || "Unable to delete customer."
+      );
+    }
+  }
+
+  // =========================================================
+  // PRODUCT FILTERING
+  // =========================================================
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const search = productSearch.toLowerCase().trim();
+
+      const matchesSearch =
+        !search ||
+        String(product.name || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(product.partNumber || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(product.vehicleModel || "")
+          .toLowerCase()
+          .includes(search);
+
+      const matchesCategory =
+        !productCategoryFilter ||
+        Number(product.categoryId) ===
+          Number(productCategoryFilter);
+
+      const matchesBrand =
+        !productBrandFilter ||
+        Number(product.brandId) === Number(productBrandFilter);
+
+      return matchesSearch && matchesCategory && matchesBrand;
     });
+  }, [
+    products,
+    productSearch,
+    productCategoryFilter,
+    productBrandFilter,
+  ]);
+
+  // =========================================================
+  // DASHBOARD CALCULATIONS
+  // =========================================================
+  const totalProducts = products.length;
+
+  const totalStock = products.reduce((total, product) => {
+    const inventory =
+      product.inventory || product.inventories || [];
+
+    const productStock = Array.isArray(inventory)
+      ? inventory.reduce(
+          (sum, item) => sum + Number(item.quantity || 0),
+          0
+        )
+      : Number(product.quantity || 0);
+
+    return total + productStock;
+  }, 0);
+
+  const lowStockProducts = products.filter((product) => {
+    const inventory =
+      product.inventory || product.inventories || [];
+
+    const stock = Array.isArray(inventory)
+      ? inventory.reduce(
+          (sum, item) => sum + Number(item.quantity || 0),
+          0
+        )
+      : Number(product.quantity || 0);
+
+    return stock <= Number(product.minimumStock || 0);
   });
 
-  const locationSummary =
-    Object.entries(locationMap);
+  const inventoryValue = products.reduce((total, product) => {
+    const inventory =
+      product.inventory || product.inventories || [];
 
-  // ============================================================
+    const stock = Array.isArray(inventory)
+      ? inventory.reduce(
+          (sum, item) => sum + Number(item.quantity || 0),
+          0
+        )
+      : Number(product.quantity || 0);
+
+    return (
+      total +
+      stock * Number(product.sellingPrice || 0)
+    );
+  }, 0);
+
+  const locationStock = locations.map((location) => {
+    const stock = products.reduce((total, product) => {
+      const inventory =
+        product.inventory || product.inventories || [];
+
+      if (!Array.isArray(inventory)) return total;
+
+      const item = inventory.find(
+        (inventoryItem) =>
+          Number(inventoryItem.locationId) ===
+          Number(location.id)
+      );
+
+      return total + Number(item?.quantity || 0);
+    }, 0);
+
+    return {
+      ...location,
+      stock,
+    };
+  });
+
+  // =========================================================
   // LOGIN SCREEN
-  // ============================================================
-
+  // =========================================================
   if (!token) {
     return (
       <div className="login-page">
         <div className="login-card">
+          <div className="login-logo">SV</div>
+
           <h1>Sri Vengamamba</h1>
-
-          <h2>
-            Oils & Automobiles
-          </h2>
-
           <p className="login-subtitle">
-            Inventory Management
-            System
+            Oils & Automobiles
           </p>
 
-          <form
-            onSubmit={handleLogin}
-          >
-            <label>Email</label>
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label>Email</label>
 
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(event) =>
-                setEmail(
-                  event.target.value
-                )
-              }
-              required
-            />
+              <input
+                type="email"
+                value={loginForm.email}
+                onChange={(event) =>
+                  setLoginForm({
+                    ...loginForm,
+                    email: event.target.value,
+                  })
+                }
+                placeholder="Enter email"
+                required
+              />
+            </div>
 
-            <label>Password</label>
+            <div className="form-group">
+              <label>Password</label>
 
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value
-                )
-              }
-              required
-            />
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(event) =>
+                  setLoginForm({
+                    ...loginForm,
+                    password: event.target.value,
+                  })
+                }
+                placeholder="Enter password"
+                required
+              />
+            </div>
 
             {loginError && (
-              <div className="login-error">
+              <div className="alert alert-error">
                 {loginError}
               </div>
             )}
 
             <button
               type="submit"
-              className="login-button"
-              disabled={
-                loginLoading
-              }
+              className="primary-button full-width"
+              disabled={loggingIn}
             >
-              {loginLoading
-                ? "Logging in..."
-                : "Login"}
+              {loggingIn ? "Logging in..." : "Login"}
             </button>
           </form>
+
+          <p className="login-footer">
+            Inventory Management System
+          </p>
         </div>
       </div>
     );
   }
 
-  // ============================================================
-  // DASHBOARD
-  // ============================================================
-
+  // =========================================================
+  // DASHBOARD PAGE
+  // =========================================================
   function DashboardPage() {
     return (
-      <>
-        <section className="dashboard-stats">
-          <div className="stat-card">
-            <p>Total Products</p>
-
-            <h3>
-              {totalProducts}
-            </h3>
-
-            <span>
-              Products in inventory
-            </span>
-          </div>
-
-          <div className="stat-card">
-            <p>Total Stock</p>
-
-            <h3>
-              {totalStock}
-            </h3>
-
-            <span>
-              Units available
-            </span>
-          </div>
-
-          <div className="stat-card low-stock-card">
-            <p>Low Stock</p>
-
-            <h3>
-              {
-                lowStockProducts.length
-              }
-            </h3>
-
-            <span>
-              Products need attention
-            </span>
-          </div>
-
-          <div className="stat-card">
-            <p>Inventory Value</p>
-
-            <h3>
-              ₹
-              {totalInventoryValue.toFixed(
-                2
-              )}
-            </h3>
-
-            <span>
-              Based on selling price
-            </span>
-          </div>
-
-          <div className="stat-card">
-            <p>Locations</p>
-
-            <h3>
-              {
-                locationSummary.length
-              }
-            </h3>
-
-            <span>
-              Active stock locations
-            </span>
-          </div>
-        </section>
-
-        <section className="dashboard-section">
-          <div className="section-header">
-            <div>
-              <h2>
-                Stock by Location
-              </h2>
-
-              <p>
-                Current inventory
-                quantity at each
-                location.
-              </p>
-            </div>
-          </div>
-
-          {locationSummary.length ===
-          0 ? (
-            <div className="empty-dashboard">
-              No inventory
-              locations found.
-            </div>
-          ) : (
-            <div className="location-summary-grid">
-              {locationSummary.map(
-                ([
-                  locationName,
-                  quantity,
-                ]) => (
-                  <div
-                    className="location-summary-card"
-                    key={
-                      locationName
-                    }
-                  >
-                    <div>
-                      <h3>
-                        {
-                          locationName
-                        }
-                      </h3>
-
-                      <p>
-                        Available
-                        stock
-                      </p>
-                    </div>
-
-                    <strong>
-                      {quantity}
-                    </strong>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="dashboard-section">
-          <div className="section-header">
-            <div>
-              <h2>
-                Low Stock Products
-              </h2>
-
-              <p>
-                Products that have
-                reached or fallen
-                below their minimum
-                stock level.
-              </p>
-            </div>
-          </div>
-
-          {lowStockProducts.length ===
-          0 ? (
-            <div className="empty-dashboard">
-              No low stock
-              products currently.
-            </div>
-          ) : (
-            <div className="low-stock-list">
-              {lowStockProducts.map(
-                (product) => {
-                  const stock =
-                    getTotalStock(
-                      product
-                    );
-
-                  return (
-                    <div
-                      className="low-stock-item"
-                      key={
-                        product.id
-                      }
-                    >
-                      <div>
-                        <h3>
-                          {
-                            product.name
-                          }
-                        </h3>
-
-                        <p>
-                          Part Number:{" "}
-                          {
-                            product.partNumber ||
-                            "N/A"
-                          }
-                        </p>
-
-                        <p>
-                          Brand:{" "}
-                          {
-                            product
-                              .brand
-                              ?.name ||
-                            "N/A"
-                          }
-                        </p>
-
-                        <p>
-                          Category:{" "}
-                          {
-                            product
-                              .category
-                              ?.name ||
-                            "N/A"
-                          }
-                        </p>
-                      </div>
-
-                      <div className="low-stock-values">
-                        <div>
-                          <span>
-                            Current
-                            Stock
-                          </span>
-
-                          <strong className="stock-low">
-                            {stock}
-                          </strong>
-                        </div>
-
-                        <div>
-                          <span>
-                            Minimum
-                            Stock
-                          </span>
-
-                          <strong>
-                            {
-                              product.minimumStock
-                            }
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="search-card">
-          <div className="search-heading">
-            <h2>
-              Search Products
-            </h2>
-
-            <p>
-              Search by product
-              name, part number,
-              description, vehicle
-              model, brand,
-              category, or
-              location.
-            </p>
-          </div>
-
-          <div className="search-row">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(event) =>
-                setSearchTerm(
-                  event.target.value
-                )
-              }
-            />
-
-            {searchTerm && (
-              <button
-                className="clear-search-button"
-                onClick={() =>
-                  setSearchTerm("")
-                }
-              >
-                Clear Search
-              </button>
-            )}
-          </div>
-
-          <p className="search-result-info">
-            Showing{" "}
-            <strong>
-              {
-                filteredProducts.length
-              }
-            </strong>{" "}
-            of{" "}
-            <strong>
-              {products.length}
-            </strong>{" "}
-            products
-          </p>
-        </section>
-
-        {showProductForm && (
-          <ProductForm />
-        )}
-
-        <section className="summary-card">
-          <h2>
-            Product Inventory
-          </h2>
-
-          <p>
-            Total products matching
-            search:{" "}
-            <strong>
-              {
-                filteredProducts.length
-              }
-            </strong>
-          </p>
-        </section>
-
-        {loadingProducts && (
-          <div className="message-card">
-            Loading products...
-          </div>
-        )}
-
-        {productError && (
-          <div className="error-card">
-            {productError}
-          </div>
-        )}
-
-        {!loadingProducts &&
-          !productError &&
-          filteredProducts.length >
-            0 && (
-            <ProductTable />
-          )}
-
-        {!loadingProducts &&
-          !productError &&
-          filteredProducts.length ===
-            0 && (
-            <div className="message-card">
-              No products found.
-            </div>
-          )}
-      </>
-    );
-  }
-
-  // ============================================================
-  // PRODUCT FORM
-  // ============================================================
-
-  function ProductForm() {
-    return (
-      <section className="product-form-card">
-        <div className="form-header">
+      <div>
+        <div className="page-heading">
           <div>
-            <h2>
-              Add New Product
-            </h2>
-
+            <h2>Dashboard</h2>
             <p>
-              Enter product
-              information below.
+              Overview of Sri Vengamamba inventory
             </p>
           </div>
 
           <button
-            className="close-form-button"
-            onClick={
-              handleCloseProductForm
-            }
+            className="secondary-button"
+            onClick={async () => {
+              setDashboardLoading(true);
+
+              await Promise.all([
+                fetchProducts(),
+                fetchCategories(),
+                fetchBrands(),
+                fetchLocations(),
+              ]);
+
+              setDashboardLoading(false);
+            }}
           >
-            ×
+            {dashboardLoading ? "Refreshing..." : "↻ Refresh"}
           </button>
         </div>
 
-        <form
-          onSubmit={
-            handleCreateProduct
-          }
-        >
-          <div className="form-grid">
-            <div className="form-group">
-              <label>
-                Product Name *
-              </label>
+        {productFormSuccess && (
+          <div className="alert alert-success">
+            {productFormSuccess}
+          </div>
+        )}
 
-              <input
-                name="name"
-                value={
-                  productForm.name
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                required
-              />
-            </div>
+        {productFormError && (
+          <div className="alert alert-error">
+            {productFormError}
+          </div>
+        )}
 
-            <div className="form-group">
-              <label>
-                Part Number
-              </label>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-label">
+              Total Products
+            </span>
 
-              <input
-                name="partNumber"
-                value={
-                  productForm.partNumber
-                }
-                onChange={
-                  handleProductFormChange
-                }
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Vehicle Model
-              </label>
-
-              <input
-                name="vehicleModel"
-                value={
-                  productForm.vehicleModel
-                }
-                onChange={
-                  handleProductFormChange
-                }
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Category *
-              </label>
-
-              <select
-                name="categoryId"
-                value={
-                  productForm.categoryId
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select category
-                </option>
-
-                {categories.map(
-                  (category) => (
-                    <option
-                      key={
-                        category.id
-                      }
-                      value={
-                        category.id
-                      }
-                    >
-                      {
-                        category.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Brand *
-              </label>
-
-              <select
-                name="brandId"
-                value={
-                  productForm.brandId
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select brand
-                </option>
-
-                {brands.map(
-                  (brand) => (
-                    <option
-                      key={
-                        brand.id
-                      }
-                      value={
-                        brand.id
-                      }
-                    >
-                      {brand.name}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                MRP *
-              </label>
-
-              <input
-                type="number"
-                name="mrp"
-                value={
-                  productForm.mrp
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Selling Price *
-              </label>
-
-              <input
-                type="number"
-                name="sellingPrice"
-                value={
-                  productForm.sellingPrice
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Minimum Stock
-              </label>
-
-              <input
-                type="number"
-                name="minimumStock"
-                value={
-                  productForm.minimumStock
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                min="0"
-                required
-              />
-            </div>
-
-            <div className="form-group full-width">
-              <label>
-                Description
-              </label>
-
-              <textarea
-                name="description"
-                value={
-                  productForm.description
-                }
-                onChange={
-                  handleProductFormChange
-                }
-                rows="4"
-              />
-            </div>
+            <strong>{totalProducts}</strong>
           </div>
 
-          {productFormError && (
-            <div className="error-message">
-              {productFormError}
+          <div className="stat-card">
+            <span className="stat-label">
+              Total Stock
+            </span>
+
+            <strong>{totalStock}</strong>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Low Stock
+            </span>
+
+            <strong>{lowStockProducts.length}</strong>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Inventory Value
+            </span>
+
+            <strong>
+              ₹{inventoryValue.toFixed(2)}
+            </strong>
+          </div>
+        </div>
+
+        <div className="dashboard-grid">
+          <section className="dashboard-section">
+            <div className="section-header">
+              <h3>Stock by Location</h3>
             </div>
-          )}
 
-          <div className="form-actions">
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={
-                handleCloseProductForm
-              }
-            >
-              Cancel
-            </button>
+            <div className="location-cards">
+              {locationStock.length === 0 ? (
+                <p className="empty-state">
+                  No locations found.
+                </p>
+              ) : (
+                locationStock.map((location) => (
+                  <div
+                    className="location-card"
+                    key={location.id}
+                  >
+                    <h4>{location.name}</h4>
+
+                    <p>
+                      {location.section &&
+                        `Section: ${location.section}`}
+                    </p>
+
+                    <p>
+                      {location.rack &&
+                        `Rack: ${location.rack}`}
+                    </p>
+
+                    <p>
+                      {location.shelf &&
+                        `Shelf: ${location.shelf}`}
+                    </p>
+
+                    <strong>
+                      {location.stock} units
+                    </strong>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="dashboard-section">
+            <div className="section-header">
+              <h3>Low Stock Products</h3>
+            </div>
+
+            {lowStockProducts.length === 0 ? (
+              <div className="empty-state">
+                No low-stock products.
+              </div>
+            ) : (
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Stock</th>
+                      <th>Minimum</th>
+                      <th>Category</th>
+                      <th>Brand</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {lowStockProducts.map((product) => {
+                      const inventory =
+                        product.inventory ||
+                        product.inventories ||
+                        [];
+
+                      const stock = Array.isArray(inventory)
+                        ? inventory.reduce(
+                            (sum, item) =>
+                              sum +
+                              Number(item.quantity || 0),
+                            0
+                          )
+                        : Number(product.quantity || 0);
+
+                      return (
+                        <tr key={product.id}>
+                          <td>{product.name}</td>
+
+                          <td className="low-stock-number">
+                            {stock}
+                          </td>
+
+                          <td>
+                            {product.minimumStock || 0}
+                          </td>
+
+                          <td>
+                            {product.category?.name ||
+                              "Engine Oil"}
+                          </td>
+
+                          <td>
+                            {product.brand?.name || "N/A"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div>
+              <h3>Products</h3>
+              <p>
+                Search and filter your products
+              </p>
+            </div>
 
             <button
-              type="submit"
-              className="save-product-button"
-              disabled={
-                savingProduct
-              }
+              className="primary-button"
+              onClick={handleAddProduct}
             >
-              {savingProduct
-                ? "Saving..."
-                : "Save Product"}
+              + Add Product
             </button>
           </div>
-        </form>
-      </section>
+
+          <div className="filter-bar">
+            <input
+              type="text"
+              value={productSearch}
+              onChange={(event) =>
+                setProductSearch(event.target.value)
+              }
+              placeholder="Search product, part number, vehicle..."
+            />
+
+            <select
+              value={productCategoryFilter}
+              onChange={(event) =>
+                setProductCategoryFilter(event.target.value)
+              }
+            >
+              <option value="">
+                All Categories
+              </option>
+
+              {categories.map((category) => (
+                <option
+                  key={category.id}
+                  value={category.id}
+                >
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={productBrandFilter}
+              onChange={(event) =>
+                setProductBrandFilter(event.target.value)
+              }
+            >
+              <option value="">
+                All Brands
+              </option>
+
+              {brands.map((brand) => (
+                <option
+                  key={brand.id}
+                  value={brand.id}
+                >
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Part Number</th>
+                  <th>Vehicle</th>
+                  <th>Category</th>
+                  <th>Brand</th>
+                  <th>MRP</th>
+                  <th>Selling Price</th>
+                  <th>Stock</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      className="empty-table"
+                    >
+                      No products found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((product) => {
+                    const inventory =
+                      product.inventory ||
+                      product.inventories ||
+                      [];
+
+                    const stock = Array.isArray(inventory)
+                      ? inventory.reduce(
+                          (sum, item) =>
+                            sum +
+                            Number(item.quantity || 0),
+                          0
+                        )
+                      : Number(product.quantity || 0);
+
+                    return (
+                      <tr key={product.id}>
+                        <td>
+                          <strong>
+                            {product.name}
+                          </strong>
+                        </td>
+
+                        <td>
+                          {product.partNumber || "-"}
+                        </td>
+
+                        <td>
+                          {product.vehicleModel || "-"}
+                        </td>
+
+                        <td>
+                          {product.category?.name ||
+                            "N/A"}
+                        </td>
+
+                        <td>
+                          {product.brand?.name || "N/A"}
+                        </td>
+
+                        <td>
+                          ₹
+                          {Number(
+                            product.mrp || 0
+                          ).toFixed(2)}
+                        </td>
+
+                        <td>
+                          ₹
+                          {Number(
+                            product.sellingPrice || 0
+                          ).toFixed(2)}
+                        </td>
+
+                        <td>
+                          <span
+                            className={
+                              stock <=
+                              Number(
+                                product.minimumStock ||
+                                  0
+                              )
+                                ? "stock-badge low"
+                                : "stock-badge"
+                            }
+                          >
+                            {stock}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {showProductForm && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <div>
+                  <h3>Add Product</h3>
+                  <p>
+                    Add a new product to inventory
+                  </p>
+                </div>
+
+                <button
+                  className="close-button"
+                  onClick={closeProductForm}
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProduct}>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Product Name *</label>
+
+                    <input
+                      name="name"
+                      value={productForm.name}
+                      onChange={handleProductFormChange}
+                      placeholder="Servo 4T Engine Oil"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Part Number *</label>
+
+                    <input
+                      name="partNumber"
+                      value={productForm.partNumber}
+                      onChange={handleProductFormChange}
+                      placeholder="SERVO-4T-001"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Vehicle Model</label>
+
+                    <input
+                      name="vehicleModel"
+                      value={productForm.vehicleModel}
+                      onChange={handleProductFormChange}
+                      placeholder="Honda, Bajaj..."
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>MRP *</label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      name="mrp"
+                      value={productForm.mrp}
+                      onChange={handleProductFormChange}
+                      placeholder="550"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Selling Price *</label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      name="sellingPrice"
+                      value={productForm.sellingPrice}
+                      onChange={handleProductFormChange}
+                      placeholder="500"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Minimum Stock</label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      name="minimumStock"
+                      value={productForm.minimumStock}
+                      onChange={handleProductFormChange}
+                      placeholder="10"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Category</label>
+
+                    <select
+                      name="categoryId"
+                      value={productForm.categoryId}
+                      onChange={handleProductFormChange}
+                    >
+                      <option value="">
+                        Select category
+                      </option>
+
+                      {categories.map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.id}
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Brand</label>
+
+                    <select
+                      name="brandId"
+                      value={productForm.brandId}
+                      onChange={handleProductFormChange}
+                    >
+                      <option value="">
+                        Select brand
+                      </option>
+
+                      {brands.map((brand) => (
+                        <option
+                          key={brand.id}
+                          value={brand.id}
+                        >
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group full-span">
+                    <label>Description</label>
+
+                    <textarea
+                      name="description"
+                      value={productForm.description}
+                      onChange={handleProductFormChange}
+                      placeholder="Product description..."
+                      rows="3"
+                    />
+                  </div>
+                </div>
+
+                {productFormError && (
+                  <div className="alert alert-error">
+                    {productFormError}
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={closeProductForm}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={savingProduct}
+                  >
+                    {savingProduct
+                      ? "Saving..."
+                      : "Save Product"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
-  // ============================================================
-  // PRODUCT TABLE
-  // ============================================================
-
-  function ProductTable() {
+  // =========================================================
+  // PURCHASES PAGE
+  // =========================================================
+  function PurchasesPage() {
     return (
-      <section className="table-card">
-        <div className="table-heading">
-          <h2>
-            All Products
-          </h2>
+      <div>
+        <div className="page-heading">
+          <div>
+            <h2>Purchase Management</h2>
+            <p>
+              Record purchases and increase inventory
+            </p>
+          </div>
 
-          <span>
-            {
-              filteredProducts.length
-            }{" "}
-            records
-          </span>
+          <button
+            className="secondary-button"
+            onClick={fetchPurchases}
+          >
+            ↻ Refresh
+          </button>
         </div>
 
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>
-                  Product Name
-                </th>
-                <th>
-                  Part Number
-                </th>
-                <th>
-                  Vehicle Model
-                </th>
-                <th>Brand</th>
-                <th>
-                  Category
-                </th>
-                <th>MRP</th>
-                <th>
-                  Selling Price
-                </th>
-                <th>
-                  Total Stock
-                </th>
-                <th>
-                  Minimum Stock
-                </th>
-                <th>
-                  Locations
-                </th>
-              </tr>
-            </thead>
+        {purchaseSuccess && (
+          <div className="alert alert-success">
+            {purchaseSuccess}
+          </div>
+        )}
 
-            <tbody>
-              {filteredProducts.map(
-                (product) => {
-                  const stock =
-                    getTotalStock(
-                      product
-                    );
+        {purchaseError && (
+          <div className="alert alert-error">
+            {purchaseError}
+          </div>
+        )}
 
-                  const minimum =
-                    Number(
-                      product.minimumStock ||
-                        0
-                    );
+        <section className="transaction-card">
+          <div className="section-header">
+            <div>
+              <h3>Create Purchase</h3>
+              <p>
+                Stock will automatically be added to
+                the selected location.
+              </p>
+            </div>
+          </div>
 
-                  return (
-                    <tr
-                      key={
-                        product.id
-                      }
+          <form onSubmit={handleSavePurchase}>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Supplier *</label>
+
+                <select
+                  name="supplierId"
+                  value={purchaseForm.supplierId}
+                  onChange={handlePurchaseFormChange}
+                  required
+                >
+                  <option value="">
+                    Select supplier
+                  </option>
+
+                  {suppliers.map((supplier) => (
+                    <option
+                      key={supplier.id}
+                      value={supplier.id}
                     >
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+
+                {suppliers.length === 0 && (
+                  <small>
+                    Add a supplier from Supplier
+                    Management first.
+                  </small>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Invoice Number *</label>
+
+                <input
+                  name="invoiceNumber"
+                  value={purchaseForm.invoiceNumber}
+                  onChange={handlePurchaseFormChange}
+                  placeholder="INV-001"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Purchase Date *</label>
+
+                <input
+                  type="date"
+                  name="purchaseDate"
+                  value={purchaseForm.purchaseDate}
+                  onChange={handlePurchaseFormChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Product *</label>
+
+                <select
+                  name="productId"
+                  value={purchaseForm.productId}
+                  onChange={handlePurchaseFormChange}
+                  required
+                >
+                  <option value="">
+                    Select product
+                  </option>
+
+                  {products.map((product) => (
+                    <option
+                      key={product.id}
+                      value={product.id}
+                    >
+                      {product.name} -{" "}
+                      {product.partNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Location *</label>
+
+                <select
+                  name="locationId"
+                  value={purchaseForm.locationId}
+                  onChange={handlePurchaseFormChange}
+                  required
+                >
+                  <option value="">
+                    Select location
+                  </option>
+
+                  {locations.map((location) => (
+                    <option
+                      key={location.id}
+                      value={location.id}
+                    >
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Quantity *</label>
+
+                <input
+                  type="number"
+                  min="1"
+                  name="quantity"
+                  value={purchaseForm.quantity}
+                  onChange={handlePurchaseFormChange}
+                  placeholder="10"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Purchase Price *</label>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="purchasePrice"
+                  value={purchaseForm.purchasePrice}
+                  onChange={handlePurchaseFormChange}
+                  placeholder="450"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="transaction-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={resetPurchaseForm}
+              >
+                Clear
+              </button>
+
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={savingPurchase}
+              >
+                {savingPurchase
+                  ? "Saving..."
+                  : "Create Purchase"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="history-section">
+          <div className="section-header">
+            <div>
+              <h3>Purchase History</h3>
+              <p>
+                {purchases.length} purchase record(s)
+              </p>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Invoice</th>
+                  <th>Supplier</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {purchases.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="empty-table"
+                    >
+                      No purchase records found.
+                    </td>
+                  </tr>
+                ) : (
+                  purchases.map((purchase) => (
+                    <tr key={purchase.id}>
+                      <td>{purchase.id}</td>
+
                       <td>
-                        {
-                          product.id
-                        }
+                        {purchase.invoiceNumber ||
+                          purchase.invoiceNo ||
+                          "-"}
                       </td>
 
                       <td>
+                        {purchase.supplier?.name ||
+                          purchase.supplierId ||
+                          "-"}
+                      </td>
+
+                      <td>
+                        {purchase.purchaseDate
+                          ? new Date(
+                              purchase.purchaseDate
+                            ).toLocaleDateString()
+                          : purchase.createdAt
+                          ? new Date(
+                              purchase.createdAt
+                            ).toLocaleDateString()
+                          : "-"}
+                      </td>
+
+                      <td>
+                        ₹
+                        {Number(
+                          purchase.totalAmount || 0
+                        ).toFixed(2)}
+                      </td>
+
+                      <td>
+                        <span className="status-badge">
+                          {purchase.status ||
+                            "COMPLETED"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // SALES PAGE
+  // =========================================================
+  function SalesPage() {
+    const selectedStock = saleForm.productId &&
+      saleForm.locationId
+      ? getInventoryQuantity(
+          saleForm.productId,
+          saleForm.locationId
+        )
+      : null;
+
+    return (
+      <div>
+        <div className="page-heading">
+          <div>
+            <h2>Sales Management</h2>
+            <p>
+              Record sales and automatically reduce
+              inventory
+            </p>
+          </div>
+
+          <button
+            className="secondary-button"
+            onClick={fetchSales}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        {saleSuccess && (
+          <div className="alert alert-success">
+            {saleSuccess}
+          </div>
+        )}
+
+        {saleError && (
+          <div className="alert alert-error">
+            {saleError}
+          </div>
+        )}
+
+        <section className="transaction-card">
+          <div className="section-header">
+            <div>
+              <h3>Create Sale</h3>
+              <p>
+                Stock will automatically be reduced
+                from the selected location.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveSale}>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Customer</label>
+
+                <select
+                  name="customerId"
+                  value={saleForm.customerId}
+                  onChange={handleSaleFormChange}
+                >
+                  <option value="">
+                    Walk-in Customer
+                  </option>
+
+                  {customers.map((customer) => (
+                    <option
+                      key={customer.id}
+                      value={customer.id}
+                    >
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Invoice Number *</label>
+
+                <input
+                  name="invoiceNumber"
+                  value={saleForm.invoiceNumber}
+                  onChange={handleSaleFormChange}
+                  placeholder="SALE-001"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Product *</label>
+
+                <select
+                  name="productId"
+                  value={saleForm.productId}
+                  onChange={handleSaleFormChange}
+                  required
+                >
+                  <option value="">
+                    Select product
+                  </option>
+
+                  {products.map((product) => (
+                    <option
+                      key={product.id}
+                      value={product.id}
+                    >
+                      {product.name} -{" "}
+                      {product.partNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Location *</label>
+
+                <select
+                  name="locationId"
+                  value={saleForm.locationId}
+                  onChange={handleSaleFormChange}
+                  required
+                >
+                  <option value="">
+                    Select location
+                  </option>
+
+                  {locations.map((location) => (
+                    <option
+                      key={location.id}
+                      value={location.id}
+                    >
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Quantity *</label>
+
+                <input
+                  type="number"
+                  min="1"
+                  name="quantity"
+                  value={saleForm.quantity}
+                  onChange={handleSaleFormChange}
+                  placeholder="1"
+                  required
+                />
+
+                {selectedStock !== null && (
+                  <small>
+                    Available stock:{" "}
+                    <strong>
+                      {selectedStock}
+                    </strong>
+                  </small>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Selling Price *</label>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="sellingPrice"
+                  value={saleForm.sellingPrice}
+                  onChange={handleSaleFormChange}
+                  placeholder="500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="transaction-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={resetSaleForm}
+              >
+                Clear
+              </button>
+
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={savingSale}
+              >
+                {savingSale
+                  ? "Saving..."
+                  : "Create Sale"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="history-section">
+          <div className="section-header">
+            <div>
+              <h3>Sales History</h3>
+              <p>
+                {sales.length} sales record(s)
+              </p>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Invoice</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="empty-table"
+                    >
+                      No sales records found.
+                    </td>
+                  </tr>
+                ) : (
+                  sales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td>{sale.id}</td>
+
+                      <td>
+                        {sale.invoiceNumber ||
+                          sale.invoiceNo ||
+                          "-"}
+                      </td>
+
+                      <td>
+                        {sale.customer?.name ||
+                          sale.customerId ||
+                          "Walk-in"}
+                      </td>
+
+                      <td>
+                        {sale.createdAt
+                          ? new Date(
+                              sale.createdAt
+                            ).toLocaleDateString()
+                          : "-"}
+                      </td>
+
+                      <td>
+                        ₹
+                        {Number(
+                          sale.totalAmount || 0
+                        ).toFixed(2)}
+                      </td>
+
+                      <td>
+                        <span className="status-badge">
+                          {sale.status ||
+                            "COMPLETED"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // SUPPLIERS PAGE
+  // =========================================================
+  function SuppliersPage() {
+    return (
+      <div>
+        <div className="page-heading">
+          <div>
+            <h2>Supplier Management</h2>
+            <p>
+              Manage suppliers for your automobile
+              shop
+            </p>
+          </div>
+
+          <div className="heading-actions">
+            <button
+              className="secondary-button"
+              onClick={fetchSuppliers}
+            >
+              ↻ Refresh
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={handleAddSupplier}
+            >
+              + Add Supplier
+            </button>
+          </div>
+        </div>
+
+        {supplierFormSuccess && (
+          <div className="alert alert-success">
+            {supplierFormSuccess}
+          </div>
+        )}
+
+        {supplierFormError && (
+          <div className="alert alert-error">
+            {supplierFormError}
+          </div>
+        )}
+
+        <section className="management-card">
+          <div className="section-header">
+            <div>
+              <h3>Suppliers</h3>
+              <p>
+                {suppliers.length} supplier(s)
+                registered
+              </p>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Purchases</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {suppliers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="empty-table"
+                    >
+                      No suppliers found. Click
+                      "Add Supplier" to create one.
+                    </td>
+                  </tr>
+                ) : (
+                  suppliers.map((supplier) => (
+                    <tr key={supplier.id}>
+                      <td>{supplier.id}</td>
+
+                      <td>
                         <strong>
-                          {
-                            product.name
-                          }
+                          {supplier.name}
                         </strong>
                       </td>
 
                       <td>
-                        {
-                          product.partNumber ||
-                          "N/A"
-                        }
+                        {supplier.phone || "-"}
                       </td>
 
                       <td>
-                        {
-                          product.vehicleModel ||
-                          "N/A"
-                        }
+                        {supplier.email || "-"}
                       </td>
 
                       <td>
-                        {
-                          product.brand
-                            ?.name ||
-                          "N/A"
-                        }
+                        {supplier.address || "-"}
                       </td>
 
                       <td>
-                        {
-                          product
-                            .category
-                            ?.name ||
-                          "N/A"
-                        }
-                      </td>
-
-                      <td>
-                        ₹
-                        {Number(
-                          product.mrp ||
-                            0
-                        ).toFixed(
-                          2
-                        )}
-                      </td>
-
-                      <td>
-                        ₹
-                        {Number(
-                          product.sellingPrice ||
-                            0
-                        ).toFixed(
-                          2
-                        )}
-                      </td>
-
-                      <td>
-                        <span
-                          className={
-                            stock <=
-                            minimum
-                              ? "stock-low"
-                              : "stock-normal"
-                          }
-                        >
-                          {stock}
+                        <span className="count-badge">
+                          {Array.isArray(
+                            supplier.purchases
+                          )
+                            ? supplier.purchases.length
+                            : 0}
                         </span>
                       </td>
 
                       <td>
-                        {minimum}
-                      </td>
+                        <div className="action-buttons">
+                          <button
+                            className="edit-button"
+                            onClick={() =>
+                              handleEditSupplier(
+                                supplier
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
 
-                      <td>
-                        <div className="location-list">
-                          {getLocationText(
-                            product
-                          ).map(
-                            (
-                              location,
-                              index
-                            ) => (
-                              <div
-                                className="location-item"
-                                key={
-                                  index
-                                }
-                              >
-                                {
-                                  location
-                                }
-                              </div>
-                            )
-                          )}
+                          <button
+                            className="delete-button"
+                            onClick={() =>
+                              handleDeleteSupplier(
+                                supplier.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  );
-                }
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    );
-  }
-
-  // ============================================================
-  // PURCHASE FORM
-  // ============================================================
-
-  function PurchaseForm() {
-    return (
-      <section className="transaction-card">
-        <div className="transaction-header">
-          <div>
-            <h2>
-              Create Purchase
-            </h2>
-
-            <p>
-              Add purchased stock to
-              your inventory.
-            </p>
-          </div>
-        </div>
-
-        <form
-          onSubmit={
-            handleCreatePurchase
-          }
-        >
-          <div className="form-grid">
-            <div className="form-group">
-              <label>
-                Supplier *
-              </label>
-
-              <select
-                name="supplierId"
-                value={
-                  purchaseForm.supplierId
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select supplier
-                </option>
-
-                {suppliers.map(
-                  (supplier) => (
-                    <option
-                      key={
-                        supplier.id
-                      }
-                      value={
-                        supplier.id
-                      }
-                    >
-                      {
-                        supplier.name
-                      }
-                    </option>
-                  )
+                  ))
                 )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Invoice Number
-              </label>
-
-              <input
-                name="invoiceNumber"
-                value={
-                  purchaseForm.invoiceNumber
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                placeholder="PUR-002"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Purchase Date *
-              </label>
-
-              <input
-                type="date"
-                name="purchaseDate"
-                value={
-                  purchaseForm.purchaseDate
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Product *
-              </label>
-
-              <select
-                name="productId"
-                value={
-                  purchaseForm.productId
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select product
-                </option>
-
-                {products.map(
-                  (product) => (
-                    <option
-                      key={
-                        product.id
-                      }
-                      value={
-                        product.id
-                      }
-                    >
-                      {
-                        product.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Location *
-              </label>
-
-              <select
-                name="locationId"
-                value={
-                  purchaseForm.locationId
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select location
-                </option>
-
-                {locations.map(
-                  (location) => (
-                    <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
-                    >
-                      {
-                        location.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Quantity *
-              </label>
-
-              <input
-                type="number"
-                name="quantity"
-                value={
-                  purchaseForm.quantity
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                min="1"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Purchase Price *
-              </label>
-
-              <input
-                type="number"
-                name="purchasePrice"
-                value={
-                  purchaseForm.purchasePrice
-                }
-                onChange={
-                  handlePurchaseFormChange
-                }
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
+              </tbody>
+            </table>
           </div>
+        </section>
 
-          <div className="transaction-total">
-            <span>
-              Total Amount
-            </span>
+        {showSupplierForm && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <div>
+                  <h3>
+                    {editingSupplierId !== null
+                      ? "Edit Supplier"
+                      : "Add Supplier"}
+                  </h3>
 
-            <strong>
-              ₹
-              {purchaseTotal.toFixed(
-                2
-              )}
-            </strong>
-          </div>
+                  <p>
+                    Enter supplier contact
+                    information
+                  </p>
+                </div>
 
-          {purchaseError && (
-            <div className="error-message">
-              {purchaseError}
-            </div>
-          )}
-
-          {purchaseSuccess && (
-            <div className="success-message">
-              {purchaseSuccess}
-            </div>
-          )}
-
-          <div className="form-actions">
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={
-                resetPurchaseForm
-              }
-            >
-              Clear
-            </button>
-
-            <button
-              type="submit"
-              className="save-product-button"
-              disabled={
-                savingPurchase
-              }
-            >
-              {savingPurchase
-                ? "Saving..."
-                : "Save Purchase"}
-            </button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
-  // ============================================================
-  // PURCHASE HISTORY
-  // ============================================================
-
-  function PurchaseHistory() {
-    return (
-      <section className="history-card">
-        <div className="section-header">
-          <div>
-            <h2>
-              Purchase History
-            </h2>
-
-            <p>
-              All purchase
-              transactions.
-            </p>
-          </div>
-
-          <button
-            className="refresh-button"
-            onClick={
-              fetchPurchases
-            }
-          >
-            Refresh
-          </button>
-        </div>
-
-        {loadingPurchases ? (
-          <div className="message-card">
-            Loading purchases...
-          </div>
-        ) : purchaseError ? (
-          <div className="error-card">
-            {purchaseError}
-          </div>
-        ) : purchases.length ===
-          0 ? (
-          <div className="empty-dashboard">
-            No purchases found.
-          </div>
-        ) : (
-          <div className="transaction-list">
-            {purchases.map(
-              (purchase) => (
-                <div
-                  className="transaction-item"
-                  key={
-                    purchase.id
-                  }
+                <button
+                  className="close-button"
+                  onClick={handleCancelSupplierForm}
                 >
-                  <div>
-                    <h3>
-                      {purchase.invoiceNumber ||
-                        `Purchase #${purchase.id}`}
-                    </h3>
+                  ×
+                </button>
+              </div>
 
-                    <p>
-                      Supplier:{" "}
-                      {
-                        purchase
-                          .supplier
-                          ?.name ||
-                        "N/A"
+              <form onSubmit={handleSaveSupplier}>
+                <div className="form-grid">
+                  <div className="form-group full-span">
+                    <label>Supplier Name *</label>
+
+                    <input
+                      name="name"
+                      value={supplierForm.name}
+                      onChange={
+                        handleSupplierFormChange
                       }
-                    </p>
-
-                    <p>
-                      Date:{" "}
-                      {purchase.purchaseDate
-                        ? new Date(
-                            purchase.purchaseDate
-                          ).toLocaleDateString(
-                            "en-IN"
-                          )
-                        : "N/A"}
-                    </p>
+                      placeholder="Enter supplier name"
+                      required
+                    />
                   </div>
 
-                  <div className="transaction-amount">
-                    ₹
-                    {Number(
-                      purchase.totalAmount ||
-                        0
-                    ).toFixed(
-                      2
-                    )}
+                  <div className="form-group">
+                    <label>Phone</label>
+
+                    <input
+                      name="phone"
+                      value={supplierForm.phone}
+                      onChange={
+                        handleSupplierFormChange
+                      }
+                      placeholder="9876543210"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Email</label>
+
+                    <input
+                      type="email"
+                      name="email"
+                      value={supplierForm.email}
+                      onChange={
+                        handleSupplierFormChange
+                      }
+                      placeholder="supplier@example.com"
+                    />
+                  </div>
+
+                  <div className="form-group full-span">
+                    <label>Address</label>
+
+                    <textarea
+                      name="address"
+                      value={supplierForm.address}
+                      onChange={
+                        handleSupplierFormChange
+                      }
+                      placeholder="Supplier address"
+                      rows="3"
+                    />
                   </div>
                 </div>
-              )
-            )}
+
+                {supplierFormError && (
+                  <div className="alert alert-error">
+                    {supplierFormError}
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={
+                      handleCancelSupplierForm
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={savingSupplier}
+                  >
+                    {savingSupplier
+                      ? "Saving..."
+                      : editingSupplierId !== null
+                      ? "Update Supplier"
+                      : "Save Supplier"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
-      </section>
+      </div>
     );
   }
 
-  // ============================================================
-  // SALE FORM
-  // ============================================================
-
-  function SaleForm() {
-    const availableStock =
-      getInventoryQuantity(
-        saleForm.productId,
-        saleForm.locationId
-      );
-
+  // =========================================================
+  // CUSTOMERS PAGE
+  // =========================================================
+  function CustomersPage() {
     return (
-      <section className="transaction-card">
-        <div className="transaction-header">
+      <div>
+        <div className="page-heading">
           <div>
-            <h2>
-              Create Sale
-            </h2>
-
+            <h2>Customer Management</h2>
             <p>
-              Sell products and
-              automatically reduce
-              inventory.
-            </p>
-          </div>
-        </div>
-
-        <form
-          onSubmit={
-            handleCreateSale
-          }
-        >
-          <div className="form-grid">
-            <div className="form-group">
-              <label>
-                Customer
-              </label>
-
-              <select
-                name="customerId"
-                value={
-                  saleForm.customerId
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-              >
-                <option value="">
-                  Walk-in Customer
-                </option>
-
-                {customers.map(
-                  (customer) => (
-                    <option
-                      key={
-                        customer.id
-                      }
-                      value={
-                        customer.id
-                      }
-                    >
-                      {
-                        customer.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Invoice Number
-              </label>
-
-              <input
-                name="invoiceNumber"
-                value={
-                  saleForm.invoiceNumber
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-                placeholder="SALE-002"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Product *
-              </label>
-
-              <select
-                name="productId"
-                value={
-                  saleForm.productId
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select product
-                </option>
-
-                {products.map(
-                  (product) => (
-                    <option
-                      key={
-                        product.id
-                      }
-                      value={
-                        product.id
-                      }
-                    >
-                      {
-                        product.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Location *
-              </label>
-
-              <select
-                name="locationId"
-                value={
-                  saleForm.locationId
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-                required
-              >
-                <option value="">
-                  Select location
-                </option>
-
-                {locations.map(
-                  (location) => (
-                    <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
-                    >
-                      {
-                        location.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>
-                Available Stock
-              </label>
-
-              <input
-                value={
-                  availableStock
-                }
-                readOnly
-                className="readonly-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Quantity *
-              </label>
-
-              <input
-                type="number"
-                name="quantity"
-                value={
-                  saleForm.quantity
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-                min="1"
-                max={
-                  availableStock ||
-                  undefined
-                }
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
-                Selling Price *
-              </label>
-
-              <input
-                type="number"
-                name="sellingPrice"
-                value={
-                  saleForm.sellingPrice
-                }
-                onChange={
-                  handleSaleFormChange
-                }
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="transaction-total">
-            <span>
-              Total Amount
-            </span>
-
-            <strong>
-              ₹
-              {saleTotal.toFixed(
-                2
-              )}
-            </strong>
-          </div>
-
-          {saleError && (
-            <div className="error-message">
-              {saleError}
-            </div>
-          )}
-
-          {saleSuccess && (
-            <div className="success-message">
-              {saleSuccess}
-            </div>
-          )}
-
-          <div className="form-actions">
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={
-                resetSaleForm
-              }
-            >
-              Clear
-            </button>
-
-            <button
-              type="submit"
-              className="save-product-button"
-              disabled={
-                savingSale
-              }
-            >
-              {savingSale
-                ? "Saving..."
-                : "Save Sale"}
-            </button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
-  // ============================================================
-  // SALES HISTORY
-  // ============================================================
-
-  function SalesHistory() {
-    return (
-      <section className="history-card">
-        <div className="section-header">
-          <div>
-            <h2>
-              Sales History
-            </h2>
-
-            <p>
-              All sales
-              transactions.
+              Manage customers for your automobile
+              shop
             </p>
           </div>
 
-          <button
-            className="refresh-button"
-            onClick={fetchSales}
-          >
-            Refresh
-          </button>
+          <div className="heading-actions">
+            <button
+              className="secondary-button"
+              onClick={fetchCustomers}
+            >
+              ↻ Refresh
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={handleAddCustomer}
+            >
+              + Add Customer
+            </button>
+          </div>
         </div>
 
-        {loadingSales ? (
-          <div className="message-card">
-            Loading sales...
+        {customerFormSuccess && (
+          <div className="alert alert-success">
+            {customerFormSuccess}
           </div>
-        ) : saleError ? (
-          <div className="error-card">
-            {saleError}
-          </div>
-        ) : sales.length ===
-          0 ? (
-          <div className="empty-dashboard">
-            No sales found.
-          </div>
-        ) : (
-          <div className="transaction-list">
-            {sales.map(
-              (sale) => (
-                <div
-                  className="transaction-item"
-                  key={sale.id}
-                >
-                  <div>
-                    <h3>
-                      {sale.invoiceNumber ||
-                        `Sale #${sale.id}`}
-                    </h3>
+        )}
 
-                    <p>
-                      Customer:{" "}
-                      {
-                        sale.customer
-                          ?.name ||
-                        "Walk-in Customer"
-                      }
-                    </p>
+        {customerFormError && (
+          <div className="alert alert-error">
+            {customerFormError}
+          </div>
+        )}
 
-                    <p>
-                      Date:{" "}
-                      {sale.createdAt
-                        ? new Date(
-                            sale.createdAt
-                          ).toLocaleDateString(
-                            "en-IN"
+        <section className="management-card">
+          <div className="section-header">
+            <div>
+              <h3>Customers</h3>
+              <p>
+                {customers.length} customer(s)
+                registered
+              </p>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Sales</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {customers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className="empty-table"
+                    >
+                      No customers found. Click
+                      "Add Customer" to create one.
+                    </td>
+                  </tr>
+                ) : (
+                  customers.map((customer) => (
+                    <tr key={customer.id}>
+                      <td>{customer.id}</td>
+
+                      <td>
+                        <strong>
+                          {customer.name}
+                        </strong>
+                      </td>
+
+                      <td>
+                        {customer.phone || "-"}
+                      </td>
+
+                      <td>
+                        {customer.email || "-"}
+                      </td>
+
+                      <td>
+                        {customer.address || "-"}
+                      </td>
+
+                      <td>
+                        <span className="count-badge">
+                          {Array.isArray(
+                            customer.sales
                           )
-                        : "N/A"}
-                    </p>
+                            ? customer.sales.length
+                            : 0}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            className="edit-button"
+                            onClick={() =>
+                              handleEditCustomer(
+                                customer
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="delete-button"
+                            onClick={() =>
+                              handleDeleteCustomer(
+                                customer.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {showCustomerForm && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <div>
+                  <h3>
+                    {editingCustomerId !== null
+                      ? "Edit Customer"
+                      : "Add Customer"}
+                  </h3>
+
+                  <p>
+                    Enter customer contact
+                    information
+                  </p>
+                </div>
+
+                <button
+                  className="close-button"
+                  onClick={handleCancelCustomerForm}
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomer}>
+                <div className="form-grid">
+                  <div className="form-group full-span">
+                    <label>Customer Name *</label>
+
+                    <input
+                      name="name"
+                      value={customerForm.name}
+                      onChange={
+                        handleCustomerFormChange
+                      }
+                      placeholder="Enter customer name"
+                      required
+                    />
                   </div>
 
-                  <div className="transaction-amount">
-                    ₹
-                    {Number(
-                      sale.totalAmount ||
-                        0
-                    ).toFixed(
-                      2
-                    )}
+                  <div className="form-group">
+                    <label>Phone</label>
+
+                    <input
+                      name="phone"
+                      value={customerForm.phone}
+                      onChange={
+                        handleCustomerFormChange
+                      }
+                      placeholder="9876543210"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Email</label>
+
+                    <input
+                      type="email"
+                      name="email"
+                      value={customerForm.email}
+                      onChange={
+                        handleCustomerFormChange
+                      }
+                      placeholder="customer@example.com"
+                    />
+                  </div>
+
+                  <div className="form-group full-span">
+                    <label>Address</label>
+
+                    <textarea
+                      name="address"
+                      value={customerForm.address}
+                      onChange={
+                        handleCustomerFormChange
+                      }
+                      placeholder="Customer address"
+                      rows="3"
+                    />
                   </div>
                 </div>
-              )
-            )}
+
+                {customerFormError && (
+                  <div className="alert alert-error">
+                    {customerFormError}
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={
+                      handleCancelCustomerForm
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={savingCustomer}
+                  >
+                    {savingCustomer
+                      ? "Saving..."
+                      : editingCustomerId !== null
+                      ? "Update Customer"
+                      : "Save Customer"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
-      </section>
+      </div>
     );
   }
 
-  // ============================================================
+  // =========================================================
   // MAIN APP
-  // ============================================================
-
+  // =========================================================
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div>
-          <h1>
-            Sri Vengamamba
-            Oils & Automobiles
-          </h1>
+    <div className="app">
+      <header className="top-header">
+        <div className="brand-section">
+          <div className="brand-logo">SV</div>
 
-          <p>
-            Inventory Management
-            System
-          </p>
-
-          {user && (
-            <p className="welcome-text">
-              Welcome,{" "}
-              {user.name ||
-                user.email}
-            </p>
-          )}
+          <div>
+            <h1>Sri Vengamamba</h1>
+            <span>
+              Oils & Automobiles
+            </span>
+          </div>
         </div>
 
-        <button
-          className="logout-button"
-          onClick={
-            handleLogout
-          }
-        >
-          Logout
-        </button>
+        <div className="user-section">
+          <div className="user-info">
+            <strong>
+              {user?.name || "Admin"}
+            </strong>
+
+            <span>
+              {user?.role || "ADMIN"}
+            </span>
+          </div>
+
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
-      <nav className="main-navigation">
+      <nav className="navigation">
         <button
           className={
-            activePage ===
-            "dashboard"
+            activePage === "dashboard"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "dashboard"
-            )
+            setActivePage("dashboard")
           }
         >
           Dashboard
@@ -2678,15 +2959,12 @@ function App() {
 
         <button
           className={
-            activePage ===
-            "purchases"
+            activePage === "purchases"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "purchases"
-            )
+            setActivePage("purchases")
           }
         >
           Purchases
@@ -2698,68 +2976,67 @@ function App() {
               ? "nav-button active"
               : "nav-button"
           }
-          onClick={() =>
-            setActivePage("sales")
-          }
+          onClick={() => setActivePage("sales")}
         >
           Sales
+        </button>
+
+        <button
+          className={
+            activePage === "suppliers"
+              ? "nav-button active"
+              : "nav-button"
+          }
+          onClick={() =>
+            setActivePage("suppliers")
+          }
+        >
+          Suppliers
+        </button>
+
+        <button
+          className={
+            activePage === "customers"
+              ? "nav-button active"
+              : "nav-button"
+          }
+          onClick={() =>
+            setActivePage("customers")
+          }
+        >
+          Customers
         </button>
       </nav>
 
       <main className="main-content">
-        {activePage ===
-          "dashboard" && (
-          <>
-            {productFormSuccess && (
-              <div className="success-card">
-                {
-                  productFormSuccess
-                }
-              </div>
-            )}
-
-            <div className="page-action-bar">
-              <button
-                className="add-product-button"
-                onClick={
-                  handleOpenProductForm
-                }
-              >
-                Add Product
-              </button>
-
-              <button
-                className="refresh-button"
-                onClick={
-                  fetchProducts
-                }
-              >
-                Refresh Products
-              </button>
-            </div>
-
-            <DashboardPage />
-          </>
+        {activePage === "dashboard" && (
+          <DashboardPage />
         )}
 
-        {activePage ===
-          "purchases" && (
-          <>
-            <PurchaseForm />
-            <PurchaseHistory />
-          </>
+        {activePage === "purchases" && (
+          <PurchasesPage />
         )}
 
         {activePage === "sales" && (
-          <>
-            <SaleForm />
-            <SalesHistory />
-          </>
+          <SalesPage />
+        )}
+
+        {activePage === "suppliers" && (
+          <SuppliersPage />
+        )}
+
+        {activePage === "customers" && (
+          <CustomersPage />
         )}
       </main>
+
+      <footer className="app-footer">
+        Sri Vengamamba Oils & Automobiles
+        <span>•</span>
+        Inventory Management System
+      </footer>
     </div>
   );
 }
 
-export default App; 
-
+export default App;
