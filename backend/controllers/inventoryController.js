@@ -1,111 +1,11 @@
 const prisma = require("../lib/prisma");
 
-// Add or update stock at a location
-const createInventory = async (req, res) => {
+// ============================================================
+// GET ALL INVENTORY
+// ============================================================
+const getAllInventory = async (req, res) => {
   try {
-    const {
-      productId,
-      locationId,
-      quantity,
-    } = req.body;
-
-    if (
-      productId === undefined ||
-      locationId === undefined ||
-      quantity === undefined
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Product ID, location ID, and quantity are required",
-      });
-    }
-
-    const parsedProductId = Number(productId);
-    const parsedLocationId = Number(locationId);
-    const parsedQuantity = Number(quantity);
-
-    if (
-      !Number.isInteger(parsedProductId) ||
-      parsedProductId <= 0 ||
-      !Number.isInteger(parsedLocationId) ||
-      parsedLocationId <= 0 ||
-      !Number.isInteger(parsedQuantity) ||
-      parsedQuantity < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Product ID and location ID must be positive integers, and quantity must be a non-negative integer",
-      });
-    }
-
-    const product = await prisma.product.findUnique({
-      where: {
-        id: parsedProductId,
-      },
-    });
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    const location = await prisma.location.findUnique({
-      where: {
-        id: parsedLocationId,
-      },
-    });
-
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: "Location not found",
-      });
-    }
-
-    const inventory = await prisma.inventory.upsert({
-      where: {
-        productId_locationId: {
-          productId: parsedProductId,
-          locationId: parsedLocationId,
-        },
-      },
-      update: {
-        quantity: parsedQuantity,
-      },
-      create: {
-        productId: parsedProductId,
-        locationId: parsedLocationId,
-        quantity: parsedQuantity,
-      },
-      include: {
-        product: true,
-        location: true,
-      },
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Inventory saved successfully",
-      data: inventory,
-    });
-  } catch (error) {
-    console.error("Create inventory error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save inventory",
-      error: error.message,
-    });
-  }
-};
-
-// Get all inventory records
-const getInventories = async (req, res) => {
-  try {
-    const inventories = await prisma.inventory.findMany({
+    const inventory = await prisma.inventory.findMany({
       include: {
         product: {
           include: {
@@ -115,18 +15,23 @@ const getInventories = async (req, res) => {
         },
         location: true,
       },
-      orderBy: {
-        id: "asc",
-      },
+      orderBy: [
+        {
+          productId: "asc",
+        },
+        {
+          locationId: "asc",
+        },
+      ],
     });
 
     return res.json({
       success: true,
-      count: inventories.length,
-      data: inventories,
+      count: inventory.length,
+      data: inventory,
     });
   } catch (error) {
-    console.error("Get inventories error:", error);
+    console.error("Get inventory error:", error);
 
     return res.status(500).json({
       success: false,
@@ -136,7 +41,9 @@ const getInventories = async (req, res) => {
   }
 };
 
-// Get inventory by ID
+// ============================================================
+// GET INVENTORY BY ID
+// ============================================================
 const getInventoryById = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -175,7 +82,7 @@ const getInventoryById = async (req, res) => {
       data: inventory,
     });
   } catch (error) {
-    console.error("Get inventory error:", error);
+    console.error("Get inventory by ID error:", error);
 
     return res.status(500).json({
       success: false,
@@ -185,110 +92,473 @@ const getInventoryById = async (req, res) => {
   }
 };
 
-// Update inventory quantity
-const updateInventory = async (req, res) => {
+// ============================================================
+// GET INVENTORY BY PRODUCT
+// ============================================================
+const getInventoryByProduct = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const { quantity } = req.body;
+    const productId = Number(req.params.productId);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(productId) || productId <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid inventory ID",
+        message: "Invalid product ID",
       });
     }
 
-    if (
-      quantity === undefined ||
-      !Number.isInteger(Number(quantity)) ||
-      Number(quantity) < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Quantity must be a non-negative integer",
-      });
-    }
-
-    const inventory = await prisma.inventory.update({
+    const inventory = await prisma.inventory.findMany({
       where: {
-        id,
-      },
-      data: {
-        quantity: Number(quantity),
+        productId,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            category: true,
+            brand: true,
+          },
+        },
         location: true,
+      },
+      orderBy: {
+        locationId: "asc",
       },
     });
 
     return res.json({
       success: true,
-      message: "Inventory updated successfully",
+      count: inventory.length,
       data: inventory,
     });
   } catch (error) {
-    console.error("Update inventory error:", error);
-
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "Inventory record not found",
-      });
-    }
+    console.error("Get product inventory error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update inventory",
+      message: "Failed to fetch product inventory",
       error: error.message,
     });
   }
 };
 
-// Delete inventory record
-const deleteInventory = async (req, res) => {
+// ============================================================
+// GET INVENTORY BY LOCATION
+// ============================================================
+const getInventoryByLocation = async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const locationId = Number(req.params.locationId);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(locationId) || locationId <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid inventory ID",
+        message: "Invalid location ID",
       });
     }
 
-    await prisma.inventory.delete({
+    const inventory = await prisma.inventory.findMany({
       where: {
-        id,
+        locationId,
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+          },
+        },
+        location: true,
+      },
+      orderBy: {
+        productId: "asc",
       },
     });
 
     return res.json({
       success: true,
-      message: "Inventory record deleted successfully",
+      count: inventory.length,
+      data: inventory,
     });
   } catch (error) {
-    console.error("Delete inventory error:", error);
-
-    if (error.code === "P2025") {
-      return res.status(404).json({
-        success: false,
-        message: "Inventory record not found",
-      });
-    }
+    console.error("Get location inventory error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete inventory record",
+      message: "Failed to fetch location inventory",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// STOCK TRANSFER
+// ============================================================
+const transferStock = async (req, res) => {
+  try {
+    const {
+      productId,
+      fromLocationId,
+      toLocationId,
+      quantity,
+    } = req.body;
+
+    const parsedProductId = Number(productId);
+    const parsedFromLocationId = Number(fromLocationId);
+    const parsedToLocationId = Number(toLocationId);
+    const parsedQuantity = Number(quantity);
+
+    if (
+      !Number.isInteger(parsedProductId) ||
+      parsedProductId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    if (
+      !Number.isInteger(parsedFromLocationId) ||
+      parsedFromLocationId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid source location",
+      });
+    }
+
+    if (
+      !Number.isInteger(parsedToLocationId) ||
+      parsedToLocationId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid destination location",
+      });
+    }
+
+    if (parsedFromLocationId === parsedToLocationId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Source and destination locations must be different",
+      });
+    }
+
+    if (
+      !Number.isInteger(parsedQuantity) ||
+      parsedQuantity <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Transfer quantity must be greater than 0",
+      });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: {
+        id: parsedProductId,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const sourceLocation = await prisma.location.findUnique({
+      where: {
+        id: parsedFromLocationId,
+      },
+    });
+
+    if (!sourceLocation) {
+      return res.status(404).json({
+        success: false,
+        message: "Source location not found",
+      });
+    }
+
+    const destinationLocation =
+      await prisma.location.findUnique({
+        where: {
+          id: parsedToLocationId,
+        },
+      });
+
+    if (!destinationLocation) {
+      return res.status(404).json({
+        success: false,
+        message: "Destination location not found",
+      });
+    }
+
+    const sourceInventory =
+      await prisma.inventory.findUnique({
+        where: {
+          productId_locationId: {
+            productId: parsedProductId,
+            locationId: parsedFromLocationId,
+          },
+        },
+      });
+
+    if (!sourceInventory) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "No inventory record exists at the source location",
+      });
+    }
+
+    if (sourceInventory.quantity < parsedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient stock. Available stock at ${sourceLocation.name}: ${sourceInventory.quantity}`,
+      });
+    }
+
+    const result = await prisma.$transaction(async (transaction) => {
+      const updatedSource =
+        await transaction.inventory.update({
+          where: {
+            id: sourceInventory.id,
+          },
+          data: {
+            quantity: {
+              decrement: parsedQuantity,
+            },
+          },
+        });
+
+      const existingDestination =
+        await transaction.inventory.findUnique({
+          where: {
+            productId_locationId: {
+              productId: parsedProductId,
+              locationId: parsedToLocationId,
+            },
+          },
+        });
+
+      let updatedDestination;
+
+      if (existingDestination) {
+        updatedDestination =
+          await transaction.inventory.update({
+            where: {
+              id: existingDestination.id,
+            },
+            data: {
+              quantity: {
+                increment: parsedQuantity,
+              },
+            },
+          });
+      } else {
+        updatedDestination =
+          await transaction.inventory.create({
+            data: {
+              productId: parsedProductId,
+              locationId: parsedToLocationId,
+              quantity: parsedQuantity,
+            },
+          });
+      }
+
+      return {
+        source: updatedSource,
+        destination: updatedDestination,
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: "Stock transferred successfully",
+      data: {
+        product: {
+          id: product.id,
+          name: product.name,
+        },
+        fromLocation: {
+          id: sourceLocation.id,
+          name: sourceLocation.name,
+        },
+        toLocation: {
+          id: destinationLocation.id,
+          name: destinationLocation.name,
+        },
+        quantity: parsedQuantity,
+        result,
+      },
+    });
+  } catch (error) {
+    console.error("Transfer stock error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to transfer stock",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================================
+// STOCK ADJUSTMENT
+// ============================================================
+const adjustStock = async (req, res) => {
+  try {
+    const {
+      productId,
+      locationId,
+      adjustmentQuantity,
+    } = req.body;
+
+    const parsedProductId = Number(productId);
+    const parsedLocationId = Number(locationId);
+    const parsedAdjustment = Number(adjustmentQuantity);
+
+    if (
+      !Number.isInteger(parsedProductId) ||
+      parsedProductId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    if (
+      !Number.isInteger(parsedLocationId) ||
+      parsedLocationId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location ID",
+      });
+    }
+
+    if (
+      !Number.isInteger(parsedAdjustment) ||
+      parsedAdjustment === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Adjustment quantity must be a non-zero integer",
+      });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: {
+        id: parsedProductId,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const location = await prisma.location.findUnique({
+      where: {
+        id: parsedLocationId,
+      },
+    });
+
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Location not found",
+      });
+    }
+
+    const existingInventory =
+      await prisma.inventory.findUnique({
+        where: {
+          productId_locationId: {
+            productId: parsedProductId,
+            locationId: parsedLocationId,
+          },
+        },
+      });
+
+    if (!existingInventory) {
+      if (parsedAdjustment < 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Cannot reduce stock because no inventory record exists at this location",
+        });
+      }
+
+      const createdInventory =
+        await prisma.inventory.create({
+          data: {
+            productId: parsedProductId,
+            locationId: parsedLocationId,
+            quantity: parsedAdjustment,
+          },
+          include: {
+            product: true,
+            location: true,
+          },
+        });
+
+      return res.json({
+        success: true,
+        message: "Stock adjusted successfully",
+        data: createdInventory,
+      });
+    }
+
+    const newQuantity =
+      existingInventory.quantity + parsedAdjustment;
+
+    if (newQuantity < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Adjustment would make stock negative. Current stock: ${existingInventory.quantity}`,
+      });
+    }
+
+    const updatedInventory =
+      await prisma.inventory.update({
+        where: {
+          id: existingInventory.id,
+        },
+        data: {
+          quantity: newQuantity,
+        },
+        include: {
+          product: true,
+          location: true,
+        },
+      });
+
+    return res.json({
+      success: true,
+      message: "Stock adjusted successfully",
+      data: updatedInventory,
+    });
+  } catch (error) {
+    console.error("Adjust stock error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to adjust stock",
       error: error.message,
     });
   }
 };
 
 module.exports = {
-  createInventory,
-  getInventories,
+  getAllInventory,
   getInventoryById,
-  updateInventory,
-  deleteInventory,
+  getInventoryByProduct,
+  getInventoryByLocation,
+  transferStock,
+  adjustStock,
 };

@@ -3,9 +3,12 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-const authRoutes = require("./routes/authRoutes");
+const prisma = require("./lib/prisma");
+
+// Routes
+const healthRoutes = require("./routes/healthRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
-const brandRoutes = require("./routes/brandRoutes");
+const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
@@ -16,27 +19,112 @@ const saleRoutes = require("./routes/saleRoutes");
 
 const app = express();
 
-app.use(cors());
+const PORT = process.env.PORT || 5000;
+
+// ===============================
+// MIDDLEWARE
+// ===============================
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ===============================
+// ROOT ROUTE
+// ===============================
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Sri Vengamamba Inventory API is running"
+    success: true,
+    message: "Sri Vengamamba Inventory API is running",
   });
 });
 
+// ===============================
+// DATABASE TEST ROUTE
+// ===============================
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT NOW()
+    `;
+
+    res.json({
+      success: true,
+      message: "Database connected successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Database test error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: error.message,
+    });
+  }
+});
+
+// ===============================
+// API ROUTES
+// ===============================
+
+app.use("/api/health", healthRoutes);
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/categories", categoryRoutes);
-app.use("/api/brands", brandRoutes);
+
 app.use("/api/products", productRoutes);
+
 app.use("/api/locations", locationRoutes);
+
 app.use("/api/inventory", inventoryRoutes);
+
 app.use("/api/suppliers", supplierRoutes);
+
 app.use("/api/customers", customerRoutes);
+
 app.use("/api/purchases", purchaseRoutes);
+
 app.use("/api/sales", saleRoutes);
 
-const PORT = process.env.PORT || 5000;
+// ===============================
+// 404 ROUTE
+// ===============================
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "API route not found",
+    path: req.originalUrl,
+  });
+});
+
+// ===============================
+// ERROR HANDLER
+// ===============================
+
+app.use((error, req, res, next) => {
+  console.error("Unhandled server error:", error);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+    error: error.message,
+  });
+});
+
+// ===============================
+// START SERVER
+// ===============================
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -7,6 +7,7 @@ function App() {
   // =========================================================
   // AUTH
   // =========================================================
+
   const [token, setToken] = useState(
     localStorage.getItem("inventoryToken") || ""
   );
@@ -30,18 +31,22 @@ function App() {
   // =========================================================
   // NAVIGATION
   // =========================================================
+
   const [activePage, setActivePage] = useState("dashboard");
 
   // =========================================================
-  // PRODUCTS / CATEGORIES / BRANDS / INVENTORY
+  // PRODUCTS
   // =========================================================
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [locations, setLocations] = useState([]);
 
   // =========================================================
   // SUPPLIERS
   // =========================================================
+
   const [suppliers, setSuppliers] = useState([]);
 
   const [showSupplierForm, setShowSupplierForm] = useState(false);
@@ -61,6 +66,7 @@ function App() {
   // =========================================================
   // CUSTOMERS
   // =========================================================
+
   const [customers, setCustomers] = useState([]);
 
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -80,6 +86,7 @@ function App() {
   // =========================================================
   // PRODUCT FORM
   // =========================================================
+
   const [showProductForm, setShowProductForm] = useState(false);
   const [productFormError, setProductFormError] = useState("");
   const [productFormSuccess, setProductFormSuccess] = useState("");
@@ -98,15 +105,19 @@ function App() {
   });
 
   // =========================================================
-  // SEARCH / FILTER
+  // PRODUCT SEARCH / FILTER
   // =========================================================
+
   const [productSearch, setProductSearch] = useState("");
-  const [productCategoryFilter, setProductCategoryFilter] = useState("");
-  const [productBrandFilter, setProductBrandFilter] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] =
+    useState("");
+  const [productBrandFilter, setProductBrandFilter] =
+    useState("");
 
   // =========================================================
-  // PURCHASE
+  // PURCHASES
   // =========================================================
+
   const [purchaseForm, setPurchaseForm] = useState({
     supplierId: "",
     invoiceNumber: "",
@@ -117,8 +128,6 @@ function App() {
     purchasePrice: "",
   });
 
-  const [locations, setLocations] = useState([]);
-
   const [purchases, setPurchases] = useState([]);
 
   const [purchaseError, setPurchaseError] = useState("");
@@ -128,6 +137,7 @@ function App() {
   // =========================================================
   // SALES
   // =========================================================
+
   const [saleForm, setSaleForm] = useState({
     customerId: "",
     invoiceNumber: "",
@@ -146,12 +156,54 @@ function App() {
   // =========================================================
   // DASHBOARD
   // =========================================================
+
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
   // =========================================================
-  // COMMON AUTH HEADER
+  // DAY 16 - INVENTORY CONTROL
   // =========================================================
-  const getHeaders = (includeJson = false) => {
+
+  const [inventory, setInventory] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState("");
+
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryLocationFilter, setInventoryLocationFilter] =
+    useState("");
+  const [inventoryLowStockOnly, setInventoryLowStockOnly] =
+    useState(false);
+
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [showAdjustmentForm, setShowAdjustmentForm] =
+    useState(false);
+
+  const [savingTransfer, setSavingTransfer] = useState(false);
+  const [savingAdjustment, setSavingAdjustment] =
+    useState(false);
+
+  const [inventoryActionError, setInventoryActionError] =
+    useState("");
+  const [inventoryActionSuccess, setInventoryActionSuccess] =
+    useState("");
+
+  const [transferForm, setTransferForm] = useState({
+    productId: "",
+    fromLocationId: "",
+    toLocationId: "",
+    quantity: "",
+  });
+
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    productId: "",
+    locationId: "",
+    adjustmentQuantity: "",
+  });
+
+  // =========================================================
+  // AUTH HEADERS
+  // =========================================================
+
+  function getHeaders(includeJson = false) {
     const headers = {
       Authorization: `Bearer ${token}`,
     };
@@ -161,11 +213,12 @@ function App() {
     }
 
     return headers;
-  };
+  }
 
   // =========================================================
   // LOGIN
   // =========================================================
+
   async function handleLogin(event) {
     event.preventDefault();
 
@@ -173,32 +226,47 @@ function App() {
     setLoggingIn(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(loginForm),
-      });
+      const response = await fetch(
+        `${API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(loginForm),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Login failed");
+        throw new Error(
+          result.message || "Login failed"
+        );
       }
 
       const newToken = result.data.token;
       const newUser = result.data.user;
 
-      localStorage.setItem("inventoryToken", newToken);
-      localStorage.setItem("inventoryUser", JSON.stringify(newUser));
+      localStorage.setItem(
+        "inventoryToken",
+        newToken
+      );
+
+      localStorage.setItem(
+        "inventoryUser",
+        JSON.stringify(newUser)
+      );
 
       setToken(newToken);
       setUser(newUser);
       setActivePage("dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError(error.message || "Unable to login");
+
+      setLoginError(
+        error.message || "Unable to login"
+      );
     } finally {
       setLoggingIn(false);
     }
@@ -207,6 +275,7 @@ function App() {
   // =========================================================
   // LOGOUT
   // =========================================================
+
   function handleLogout() {
     localStorage.removeItem("inventoryToken");
     localStorage.removeItem("inventoryUser");
@@ -219,16 +288,23 @@ function App() {
   // =========================================================
   // FETCH PRODUCTS
   // =========================================================
+
   async function fetchProducts() {
     try {
-      const response = await fetch(`${API_URL}/api/products`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/products`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch products");
+        throw new Error(
+          result.message ||
+            "Failed to fetch products"
+        );
       }
 
       const productData = Array.isArray(result)
@@ -237,23 +313,33 @@ function App() {
 
       setProducts(productData);
     } catch (error) {
-      console.error("Fetch products error:", error);
+      console.error(
+        "Fetch products error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH CATEGORIES
   // =========================================================
+
   async function fetchCategories() {
     try {
-      const response = await fetch(`${API_URL}/api/categories`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/categories`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch categories");
+        throw new Error(
+          result.message ||
+            "Failed to fetch categories"
+        );
       }
 
       const categoryData = Array.isArray(result)
@@ -262,23 +348,33 @@ function App() {
 
       setCategories(categoryData);
     } catch (error) {
-      console.error("Fetch categories error:", error);
+      console.error(
+        "Fetch categories error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH BRANDS
   // =========================================================
+
   async function fetchBrands() {
     try {
-      const response = await fetch(`${API_URL}/api/brands`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/brands`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch brands");
+        throw new Error(
+          result.message ||
+            "Failed to fetch brands"
+        );
       }
 
       const brandData = Array.isArray(result)
@@ -287,23 +383,33 @@ function App() {
 
       setBrands(brandData);
     } catch (error) {
-      console.error("Fetch brands error:", error);
+      console.error(
+        "Fetch brands error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH LOCATIONS
   // =========================================================
+
   async function fetchLocations() {
     try {
-      const response = await fetch(`${API_URL}/api/locations`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/locations`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch locations");
+        throw new Error(
+          result.message ||
+            "Failed to fetch locations"
+        );
       }
 
       const locationData = Array.isArray(result)
@@ -312,107 +418,210 @@ function App() {
 
       setLocations(locationData);
     } catch (error) {
-      console.error("Fetch locations error:", error);
+      console.error(
+        "Fetch locations error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH SUPPLIERS
   // =========================================================
+
   async function fetchSuppliers() {
     try {
-      const response = await fetch(`${API_URL}/api/suppliers`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/suppliers`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to fetch suppliers");
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.message ||
+            "Failed to fetch suppliers"
+        );
       }
 
       setSuppliers(result.data || []);
     } catch (error) {
-      console.error("Fetch suppliers error:", error);
+      console.error(
+        "Fetch suppliers error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH CUSTOMERS
   // =========================================================
+
   async function fetchCustomers() {
     try {
-      const response = await fetch(`${API_URL}/api/customers`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/customers`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to fetch customers");
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.message ||
+            "Failed to fetch customers"
+        );
       }
 
       setCustomers(result.data || []);
     } catch (error) {
-      console.error("Fetch customers error:", error);
+      console.error(
+        "Fetch customers error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH PURCHASES
   // =========================================================
+
   async function fetchPurchases() {
     try {
-      const response = await fetch(`${API_URL}/api/purchases`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/purchases`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch purchases");
+        throw new Error(
+          result.message ||
+            "Failed to fetch purchases"
+        );
       }
 
-      const purchaseData = Array.isArray(result)
-        ? result
-        : result.data || [];
+      const purchaseData =
+        Array.isArray(result)
+          ? result
+          : result.data || [];
 
       setPurchases(purchaseData);
     } catch (error) {
-      console.error("Fetch purchases error:", error);
+      console.error(
+        "Fetch purchases error:",
+        error
+      );
     }
   }
 
   // =========================================================
   // FETCH SALES
   // =========================================================
+
   async function fetchSales() {
     try {
-      const response = await fetch(`${API_URL}/api/sales`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/sales`,
+        {
+          headers: getHeaders(),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to fetch sales");
+        throw new Error(
+          result.message ||
+            "Failed to fetch sales"
+        );
       }
 
-      const salesData = Array.isArray(result)
-        ? result
-        : result.data || [];
+      const salesData =
+        Array.isArray(result)
+          ? result
+          : result.data || [];
 
       setSales(salesData);
     } catch (error) {
-      console.error("Fetch sales error:", error);
+      console.error(
+        "Fetch sales error:",
+        error
+      );
+    }
+  }
+
+  // =========================================================
+  // FETCH INVENTORY - DAY 16
+  // =========================================================
+
+  async function fetchInventory() {
+    try {
+      setInventoryLoading(true);
+      setInventoryError("");
+
+      const response = await fetch(
+        `${API_URL}/api/inventory`,
+        {
+          headers: getHeaders(),
+        }
+      );
+
+      const result = await response.json();
+
+      if (
+        !response.ok ||
+        result.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "Failed to fetch inventory"
+        );
+      }
+
+      const inventoryData =
+        Array.isArray(result)
+          ? result
+          : result.data || [];
+
+      setInventory(inventoryData);
+    } catch (error) {
+      console.error(
+        "Fetch inventory error:",
+        error
+      );
+
+      setInventoryError(
+        error.message ||
+          "Unable to load inventory"
+      );
+    } finally {
+      setInventoryLoading(false);
     }
   }
 
   // =========================================================
   // INITIAL DATA LOAD
   // =========================================================
+
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     async function loadAllData() {
       setDashboardLoading(true);
@@ -426,6 +635,7 @@ function App() {
         fetchCustomers(),
         fetchPurchases(),
         fetchSales(),
+        fetchInventory(),
       ]);
 
       setDashboardLoading(false);
@@ -437,6 +647,7 @@ function App() {
   // =========================================================
   // PRODUCT FORM
   // =========================================================
+
   function handleProductFormChange(event) {
     const { name, value } = event.target;
 
@@ -482,58 +693,111 @@ function App() {
 
     try {
       if (!productForm.name.trim()) {
-        throw new Error("Product name is required");
+        throw new Error(
+          "Product name is required"
+        );
       }
 
       if (!productForm.partNumber.trim()) {
-        throw new Error("Part number is required");
-      }
-
-      if (!productForm.mrp || Number(productForm.mrp) < 0) {
-        throw new Error("Enter a valid MRP");
+        throw new Error(
+          "Part number is required"
+        );
       }
 
       if (
-        !productForm.sellingPrice ||
-        Number(productForm.sellingPrice) < 0
+        productForm.mrp === "" ||
+        Number(productForm.mrp) < 0
       ) {
-        throw new Error("Enter a valid selling price");
+        throw new Error(
+          "Enter a valid MRP"
+        );
       }
 
-      const response = await fetch(`${API_URL}/api/products`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-          name: productForm.name.trim(),
-          partNumber: productForm.partNumber.trim(),
-          description: productForm.description || null,
-          vehicleModel: productForm.vehicleModel || null,
-          mrp: Number(productForm.mrp),
-          sellingPrice: Number(productForm.sellingPrice),
-          minimumStock: Number(productForm.minimumStock || 0),
-          categoryId: productForm.categoryId
-            ? Number(productForm.categoryId)
-            : null,
-          brandId: productForm.brandId
-            ? Number(productForm.brandId)
-            : null,
-        }),
-      });
+      if (
+        productForm.sellingPrice === "" ||
+        Number(productForm.sellingPrice) < 0
+      ) {
+        throw new Error(
+          "Enter a valid selling price"
+        );
+      }
+
+      if (!productForm.categoryId) {
+        throw new Error(
+          "Please select a category"
+        );
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/products`,
+        {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            name: productForm.name.trim(),
+            partNumber:
+              productForm.partNumber.trim(),
+            description:
+              productForm.description ||
+              null,
+            vehicleModel:
+              productForm.vehicleModel ||
+              null,
+            mrp: Number(productForm.mrp),
+            sellingPrice:
+              Number(
+                productForm.sellingPrice
+              ),
+            minimumStock:
+              Number(
+                productForm.minimumStock || 0
+              ),
+            categoryId:
+              Number(
+                productForm.categoryId
+              ),
+            brandId:
+              productForm.brandId
+                ? Number(
+                    productForm.brandId
+                  )
+                : null,
+          }),
+        }
+      );
 
       const result = await response.json();
 
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || "Unable to create product");
+      if (
+        !response.ok ||
+        result.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "Unable to create product"
+        );
       }
 
-      await fetchProducts();
+      await Promise.all([
+        fetchProducts(),
+        fetchInventory(),
+      ]);
 
       closeProductForm();
 
-      setProductFormSuccess("Product created successfully.");
+      setProductFormSuccess(
+        "Product created successfully."
+      );
     } catch (error) {
-      console.error("Save product error:", error);
-      setProductFormError(error.message || "Unable to create product.");
+      console.error(
+        "Save product error:",
+        error
+      );
+
+      setProductFormError(
+        error.message ||
+          "Unable to create product."
+      );
     } finally {
       setSavingProduct(false);
     }
@@ -542,6 +806,7 @@ function App() {
   // =========================================================
   // PURCHASE FORM
   // =========================================================
+
   function handlePurchaseFormChange(event) {
     const { name, value } = event.target;
 
@@ -555,7 +820,10 @@ function App() {
     setPurchaseForm({
       supplierId: "",
       invoiceNumber: "",
-      purchaseDate: new Date().toISOString().split("T")[0],
+      purchaseDate:
+        new Date()
+          .toISOString()
+          .split("T")[0],
       productId: "",
       locationId: "",
       quantity: "",
@@ -572,70 +840,120 @@ function App() {
 
     try {
       if (!purchaseForm.supplierId) {
-        throw new Error("Please select a supplier.");
+        throw new Error(
+          "Please select a supplier."
+        );
       }
 
-      if (!purchaseForm.invoiceNumber.trim()) {
-        throw new Error("Invoice number is required.");
+      if (
+        !purchaseForm.invoiceNumber.trim()
+      ) {
+        throw new Error(
+          "Invoice number is required."
+        );
       }
 
       if (!purchaseForm.productId) {
-        throw new Error("Please select a product.");
+        throw new Error(
+          "Please select a product."
+        );
       }
 
       if (!purchaseForm.locationId) {
-        throw new Error("Please select a location.");
+        throw new Error(
+          "Please select a location."
+        );
       }
 
       if (
         !purchaseForm.quantity ||
         Number(purchaseForm.quantity) <= 0
       ) {
-        throw new Error("Quantity must be greater than 0.");
+        throw new Error(
+          "Quantity must be greater than 0."
+        );
       }
 
       if (
         purchaseForm.purchasePrice === "" ||
         Number(purchaseForm.purchasePrice) < 0
       ) {
-        throw new Error("Enter a valid purchase price.");
+        throw new Error(
+          "Enter a valid purchase price."
+        );
       }
 
-      const response = await fetch(`${API_URL}/api/purchases`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-          supplierId: Number(purchaseForm.supplierId),
-          invoiceNumber: purchaseForm.invoiceNumber.trim(),
-          purchaseDate: purchaseForm.purchaseDate,
-          items: [
-            {
-              productId: Number(purchaseForm.productId),
-              locationId: Number(purchaseForm.locationId),
-              quantity: Number(purchaseForm.quantity),
-              purchasePrice: Number(purchaseForm.purchasePrice),
-            },
-          ],
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/api/purchases`,
+        {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            supplierId:
+              Number(
+                purchaseForm.supplierId
+              ),
+            invoiceNumber:
+              purchaseForm.invoiceNumber.trim(),
+            purchaseDate:
+              purchaseForm.purchaseDate,
+            items: [
+              {
+                productId:
+                  Number(
+                    purchaseForm.productId
+                  ),
+                locationId:
+                  Number(
+                    purchaseForm.locationId
+                  ),
+                quantity:
+                  Number(
+                    purchaseForm.quantity
+                  ),
+                purchasePrice:
+                  Number(
+                    purchaseForm.purchasePrice
+                  ),
+              },
+            ],
+          }),
+        }
+      );
 
       const result = await response.json();
 
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || "Unable to create purchase");
+      if (
+        !response.ok ||
+        result.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "Unable to create purchase"
+        );
       }
 
       await Promise.all([
         fetchPurchases(),
         fetchProducts(),
+        fetchInventory(),
       ]);
 
       resetPurchaseForm();
 
-      setPurchaseSuccess("Purchase created successfully.");
+      setPurchaseSuccess(
+        "Purchase created successfully."
+      );
     } catch (error) {
-      console.error("Save purchase error:", error);
-      setPurchaseError(error.message || "Unable to create purchase.");
+      console.error(
+        "Save purchase error:",
+        error
+      );
+
+      setPurchaseError(
+        error.message ||
+          "Unable to create purchase."
+      );
     } finally {
       setSavingPurchase(false);
     }
@@ -644,6 +962,7 @@ function App() {
   // =========================================================
   // SALES FORM
   // =========================================================
+
   function handleSaleFormChange(event) {
     const { name, value } = event.target;
 
@@ -664,30 +983,41 @@ function App() {
     });
   }
 
-  function getInventoryQuantity(productId, locationId) {
+  function getInventoryQuantity(
+    productId,
+    locationId
+  ) {
     const product = products.find(
-      (item) => Number(item.id) === Number(productId)
+      (item) =>
+        Number(item.id) ===
+        Number(productId)
     );
 
-    if (!product) return 0;
-
-    if (Array.isArray(product.inventory)) {
-      const inventoryItem = product.inventory.find(
-        (item) => Number(item.locationId) === Number(locationId)
-      );
-
-      return inventoryItem ? Number(inventoryItem.quantity || 0) : 0;
+    if (!product) {
+      return 0;
     }
 
-    if (Array.isArray(product.inventories)) {
-      const inventoryItem = product.inventories.find(
-        (item) => Number(item.locationId) === Number(locationId)
-      );
+    const inventories =
+      product.inventories ||
+      product.inventory ||
+      [];
 
-      return inventoryItem ? Number(inventoryItem.quantity || 0) : 0;
+    if (!Array.isArray(inventories)) {
+      return 0;
     }
 
-    return 0;
+    const inventoryItem =
+      inventories.find(
+        (item) =>
+          Number(item.locationId) ===
+          Number(locationId)
+      );
+
+    return inventoryItem
+      ? Number(
+          inventoryItem.quantity || 0
+        )
+      : 0;
   }
 
   async function handleSaveSale(event) {
@@ -698,92 +1028,141 @@ function App() {
     setSavingSale(true);
 
     try {
-      if (!saleForm.invoiceNumber.trim()) {
-        throw new Error("Invoice number is required.");
+      if (
+        !saleForm.invoiceNumber.trim()
+      ) {
+        throw new Error(
+          "Invoice number is required."
+        );
       }
 
       if (!saleForm.productId) {
-        throw new Error("Please select a product.");
+        throw new Error(
+          "Please select a product."
+        );
       }
 
       if (!saleForm.locationId) {
-        throw new Error("Please select a location.");
+        throw new Error(
+          "Please select a location."
+        );
       }
 
-      if (!saleForm.quantity || Number(saleForm.quantity) <= 0) {
-        throw new Error("Quantity must be greater than 0.");
+      if (
+        !saleForm.quantity ||
+        Number(saleForm.quantity) <= 0
+      ) {
+        throw new Error(
+          "Quantity must be greater than 0."
+        );
       }
 
       if (
         saleForm.sellingPrice === "" ||
         Number(saleForm.sellingPrice) < 0
       ) {
-        throw new Error("Enter a valid selling price.");
+        throw new Error(
+          "Enter a valid selling price."
+        );
       }
 
-      const availableStock = getInventoryQuantity(
-        saleForm.productId,
-        saleForm.locationId
-      );
+      const availableStock =
+        getInventoryQuantity(
+          saleForm.productId,
+          saleForm.locationId
+        );
 
       if (
-        availableStock > 0 &&
-        Number(saleForm.quantity) > availableStock
+        Number(saleForm.quantity) >
+        availableStock
       ) {
         throw new Error(
           `Only ${availableStock} units are available at this location.`
         );
       }
 
-      const response = await fetch(`${API_URL}/api/sales`, {
-        method: "POST",
-        headers: getHeaders(true),
-        body: JSON.stringify({
-          customerId: saleForm.customerId
-            ? Number(saleForm.customerId)
-            : null,
-          invoiceNumber: saleForm.invoiceNumber.trim(),
-          items: [
-            {
-              productId: Number(saleForm.productId),
-              locationId: Number(saleForm.locationId),
-              quantity: Number(saleForm.quantity),
-              sellingPrice: Number(saleForm.sellingPrice),
-            },
-          ],
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/api/sales`,
+        {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            customerId:
+              saleForm.customerId
+                ? Number(
+                    saleForm.customerId
+                  )
+                : null,
+            invoiceNumber:
+              saleForm.invoiceNumber.trim(),
+            items: [
+              {
+                productId:
+                  Number(
+                    saleForm.productId
+                  ),
+                locationId:
+                  Number(
+                    saleForm.locationId
+                  ),
+                quantity:
+                  Number(
+                    saleForm.quantity
+                  ),
+                sellingPrice:
+                  Number(
+                    saleForm.sellingPrice
+                  ),
+              },
+            ],
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Unable to create sale");
+        throw new Error(
+          result.message ||
+            "Unable to create sale"
+        );
       }
 
       await Promise.all([
         fetchSales(),
         fetchProducts(),
+        fetchInventory(),
       ]);
 
       resetSaleForm();
 
-      setSaleSuccess("Sale created successfully.");
+      setSaleSuccess(
+        "Sale created successfully."
+      );
     } catch (error) {
-      console.error("Save sale error:", error);
-      setSaleError(error.message || "Unable to create sale.");
+      console.error(
+        "Save sale error:",
+        error
+      );
+
+      setSaleError(
+        error.message ||
+          "Unable to create sale."
+      );
     } finally {
       setSavingSale(false);
     }
   }
 
   // =========================================================
-  // SUPPLIER FORM
+  // SUPPLIER FUNCTIONS
   // =========================================================
+
   function handleSupplierFormChange(event) {
     const { name, value } = event.target;
 
-    setSupplierForm((previousForm) => ({
-      ...previousForm,
+    setSupplierForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
   }
@@ -834,31 +1213,41 @@ function App() {
 
     try {
       if (!supplierForm.name.trim()) {
-        throw new Error("Supplier name is required.");
+        throw new Error(
+          "Supplier name is required."
+        );
       }
 
-      const isEditing = editingSupplierId !== null;
+      const editing =
+        editingSupplierId !== null;
 
-      const url = isEditing
+      const url = editing
         ? `${API_URL}/api/suppliers/${editingSupplierId}`
         : `${API_URL}/api/suppliers`;
 
       const response = await fetch(url, {
-        method: isEditing ? "PUT" : "POST",
+        method: editing ? "PUT" : "POST",
         headers: getHeaders(true),
         body: JSON.stringify({
           name: supplierForm.name.trim(),
-          phone: supplierForm.phone || null,
-          email: supplierForm.email || null,
-          address: supplierForm.address || null,
+          phone:
+            supplierForm.phone || null,
+          email:
+            supplierForm.email || null,
+          address:
+            supplierForm.address || null,
         }),
       });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
-          result.message || "Unable to save supplier"
+          result.message ||
+            "Unable to save supplier"
         );
       }
 
@@ -868,30 +1257,35 @@ function App() {
       resetSupplierForm();
 
       setSupplierFormSuccess(
-        isEditing
+        editing
           ? "Supplier updated successfully."
           : "Supplier created successfully."
       );
     } catch (error) {
-      console.error("Save supplier error:", error);
+      console.error(
+        "Save supplier error:",
+        error
+      );
 
       setSupplierFormError(
-        error.message || "Unable to save supplier."
+        error.message ||
+          "Unable to save supplier."
       );
     } finally {
       setSavingSupplier(false);
     }
   }
 
-  async function handleDeleteSupplier(supplierId) {
+  async function handleDeleteSupplier(
+    supplierId
+  ) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this supplier?"
     );
 
-    if (!confirmed) return;
-
-    setSupplierFormError("");
-    setSupplierFormSuccess("");
+    if (!confirmed) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -904,32 +1298,38 @@ function App() {
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
-          result.message || "Unable to delete supplier"
+          result.message ||
+            "Unable to delete supplier"
         );
       }
 
       await fetchSuppliers();
 
-      setSupplierFormSuccess("Supplier deleted successfully.");
+      setSupplierFormSuccess(
+        "Supplier deleted successfully."
+      );
     } catch (error) {
-      console.error("Delete supplier error:", error);
-
       setSupplierFormError(
-        error.message || "Unable to delete supplier."
+        error.message ||
+          "Unable to delete supplier."
       );
     }
   }
 
   // =========================================================
-  // CUSTOMER FORM
+  // CUSTOMER FUNCTIONS
   // =========================================================
+
   function handleCustomerFormChange(event) {
     const { name, value } = event.target;
 
-    setCustomerForm((previousForm) => ({
-      ...previousForm,
+    setCustomerForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
   }
@@ -980,31 +1380,41 @@ function App() {
 
     try {
       if (!customerForm.name.trim()) {
-        throw new Error("Customer name is required.");
+        throw new Error(
+          "Customer name is required."
+        );
       }
 
-      const isEditing = editingCustomerId !== null;
+      const editing =
+        editingCustomerId !== null;
 
-      const url = isEditing
+      const url = editing
         ? `${API_URL}/api/customers/${editingCustomerId}`
         : `${API_URL}/api/customers`;
 
       const response = await fetch(url, {
-        method: isEditing ? "PUT" : "POST",
+        method: editing ? "PUT" : "POST",
         headers: getHeaders(true),
         body: JSON.stringify({
           name: customerForm.name.trim(),
-          phone: customerForm.phone || null,
-          email: customerForm.email || null,
-          address: customerForm.address || null,
+          phone:
+            customerForm.phone || null,
+          email:
+            customerForm.email || null,
+          address:
+            customerForm.address || null,
         }),
       });
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
-          result.message || "Unable to save customer"
+          result.message ||
+            "Unable to save customer"
         );
       }
 
@@ -1014,30 +1424,35 @@ function App() {
       resetCustomerForm();
 
       setCustomerFormSuccess(
-        isEditing
+        editing
           ? "Customer updated successfully."
           : "Customer created successfully."
       );
     } catch (error) {
-      console.error("Save customer error:", error);
+      console.error(
+        "Save customer error:",
+        error
+      );
 
       setCustomerFormError(
-        error.message || "Unable to save customer."
+        error.message ||
+          "Unable to save customer."
       );
     } finally {
       setSavingCustomer(false);
     }
   }
 
-  async function handleDeleteCustomer(customerId) {
+  async function handleDeleteCustomer(
+    customerId
+  ) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this customer?"
     );
 
-    if (!confirmed) return;
-
-    setCustomerFormError("");
-    setCustomerFormSuccess("");
+    if (!confirmed) {
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -1050,20 +1465,25 @@ function App() {
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
-          result.message || "Unable to delete customer"
+          result.message ||
+            "Unable to delete customer"
         );
       }
 
       await fetchCustomers();
 
-      setCustomerFormSuccess("Customer deleted successfully.");
+      setCustomerFormSuccess(
+        "Customer deleted successfully."
+      );
     } catch (error) {
-      console.error("Delete customer error:", error);
-
       setCustomerFormError(
-        error.message || "Unable to delete customer."
+        error.message ||
+          "Unable to delete customer."
       );
     }
   }
@@ -1071,10 +1491,14 @@ function App() {
   // =========================================================
   // PRODUCT FILTERING
   // =========================================================
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const search = productSearch.toLowerCase().trim();
 
+  const filteredProducts = useMemo(() => {
+    const search =
+      productSearch
+        .toLowerCase()
+        .trim();
+
+    return products.filter((product) => {
       const matchesSearch =
         !search ||
         String(product.name || "")
@@ -1094,9 +1518,14 @@ function App() {
 
       const matchesBrand =
         !productBrandFilter ||
-        Number(product.brandId) === Number(productBrandFilter);
+        Number(product.brandId) ===
+          Number(productBrandFilter);
 
-      return matchesSearch && matchesCategory && matchesBrand;
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesBrand
+      );
     });
   }, [
     products,
@@ -1108,100 +1537,535 @@ function App() {
   // =========================================================
   // DASHBOARD CALCULATIONS
   // =========================================================
-  const totalProducts = products.length;
 
-  const totalStock = products.reduce((total, product) => {
-    const inventory =
-      product.inventory || product.inventories || [];
+  function getProductStock(product) {
+    const inventories =
+      product.inventories ||
+      product.inventory ||
+      [];
 
-    const productStock = Array.isArray(inventory)
-      ? inventory.reduce(
-          (sum, item) => sum + Number(item.quantity || 0),
-          0
-        )
-      : Number(product.quantity || 0);
+    if (!Array.isArray(inventories)) {
+      return Number(
+        product.quantity || 0
+      );
+    }
 
-    return total + productStock;
-  }, 0);
-
-  const lowStockProducts = products.filter((product) => {
-    const inventory =
-      product.inventory || product.inventories || [];
-
-    const stock = Array.isArray(inventory)
-      ? inventory.reduce(
-          (sum, item) => sum + Number(item.quantity || 0),
-          0
-        )
-      : Number(product.quantity || 0);
-
-    return stock <= Number(product.minimumStock || 0);
-  });
-
-  const inventoryValue = products.reduce((total, product) => {
-    const inventory =
-      product.inventory || product.inventories || [];
-
-    const stock = Array.isArray(inventory)
-      ? inventory.reduce(
-          (sum, item) => sum + Number(item.quantity || 0),
-          0
-        )
-      : Number(product.quantity || 0);
-
-    return (
-      total +
-      stock * Number(product.sellingPrice || 0)
+    return inventories.reduce(
+      (total, item) =>
+        total +
+        Number(item.quantity || 0),
+      0
     );
-  }, 0);
+  }
 
-  const locationStock = locations.map((location) => {
-    const stock = products.reduce((total, product) => {
-      const inventory =
-        product.inventory || product.inventories || [];
+  const totalProducts =
+    products.length;
 
-      if (!Array.isArray(inventory)) return total;
+  const totalStock =
+    products.reduce(
+      (total, product) =>
+        total +
+        getProductStock(product),
+      0
+    );
 
-      const item = inventory.find(
-        (inventoryItem) =>
-          Number(inventoryItem.locationId) ===
-          Number(location.id)
+  const lowStockProducts =
+    products.filter(
+      (product) =>
+        getProductStock(product) <=
+        Number(
+          product.minimumStock || 0
+        )
+    );
+
+  const inventoryValue =
+    products.reduce(
+      (total, product) =>
+        total +
+        getProductStock(product) *
+          Number(
+            product.sellingPrice || 0
+          ),
+      0
+    );
+
+  const locationStock =
+    locations.map((location) => {
+      const stock =
+        products.reduce(
+          (total, product) => {
+            const inventories =
+              product.inventories ||
+              product.inventory ||
+              [];
+
+            if (
+              !Array.isArray(
+                inventories
+              )
+            ) {
+              return total;
+            }
+
+            const item =
+              inventories.find(
+                (inventoryItem) =>
+                  Number(
+                    inventoryItem.locationId
+                  ) ===
+                  Number(location.id)
+              );
+
+            return (
+              total +
+              Number(
+                item?.quantity || 0
+              )
+            );
+          },
+          0
+        );
+
+      return {
+        ...location,
+        stock,
+      };
+    });
+
+  // =========================================================
+  // DAY 16 INVENTORY FILTERING
+  // =========================================================
+
+  const filteredInventory =
+    useMemo(() => {
+      const search =
+        inventorySearch
+          .toLowerCase()
+          .trim();
+
+      return inventory.filter(
+        (item) => {
+          const product =
+            item.product || {};
+
+          const location =
+            item.location || {};
+
+          const matchesSearch =
+            !search ||
+            String(
+              product.name || ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              product.partNumber || ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              product.vehicleModel ||
+                ""
+            )
+              .toLowerCase()
+              .includes(search) ||
+            String(
+              location.name || ""
+            )
+              .toLowerCase()
+              .includes(search);
+
+          const matchesLocation =
+            !inventoryLocationFilter ||
+            Number(
+              item.locationId
+            ) ===
+              Number(
+                inventoryLocationFilter
+              );
+
+          const matchesLowStock =
+            !inventoryLowStockOnly ||
+            Number(
+              item.quantity || 0
+            ) <=
+              Number(
+                product.minimumStock ||
+                  0
+              );
+
+          return (
+            matchesSearch &&
+            matchesLocation &&
+            matchesLowStock
+          );
+        }
+      );
+    }, [
+      inventory,
+      inventorySearch,
+      inventoryLocationFilter,
+      inventoryLowStockOnly,
+    ]);
+
+  const inventoryTotalStock =
+    inventory.reduce(
+      (total, item) =>
+        total +
+        Number(item.quantity || 0),
+      0
+    );
+
+  const inventoryLowStockCount =
+    inventory.filter(
+      (item) =>
+        Number(
+          item.quantity || 0
+        ) <=
+        Number(
+          item.product
+            ?.minimumStock || 0
+        )
+    ).length;
+
+  const inventoryLocationsUsed =
+    new Set(
+      inventory.map(
+        (item) => item.locationId
+      )
+    ).size;
+
+  // =========================================================
+  // DAY 16 TRANSFER FORM
+  // =========================================================
+
+  function handleTransferFormChange(
+    event
+  ) {
+    const { name, value } =
+      event.target;
+
+    setTransferForm(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+  }
+
+  function resetTransferForm() {
+    setTransferForm({
+      productId: "",
+      fromLocationId: "",
+      toLocationId: "",
+      quantity: "",
+    });
+  }
+
+  function openTransferForm() {
+    resetTransferForm();
+    setInventoryActionError("");
+    setInventoryActionSuccess("");
+    setShowTransferForm(true);
+  }
+
+  function closeTransferForm() {
+    setShowTransferForm(false);
+    resetTransferForm();
+  }
+
+  async function handleTransferStock(
+    event
+  ) {
+    event.preventDefault();
+
+    setSavingTransfer(true);
+    setInventoryActionError("");
+    setInventoryActionSuccess("");
+
+    try {
+      if (!transferForm.productId) {
+        throw new Error(
+          "Please select a product."
+        );
+      }
+
+      if (
+        !transferForm.fromLocationId
+      ) {
+        throw new Error(
+          "Please select the source location."
+        );
+      }
+
+      if (
+        !transferForm.toLocationId
+      ) {
+        throw new Error(
+          "Please select the destination location."
+        );
+      }
+
+      if (
+        transferForm.fromLocationId ===
+        transferForm.toLocationId
+      ) {
+        throw new Error(
+          "Source and destination locations must be different."
+        );
+      }
+
+      if (
+        !transferForm.quantity ||
+        Number(
+          transferForm.quantity
+        ) <= 0
+      ) {
+        throw new Error(
+          "Transfer quantity must be greater than 0."
+        );
+      }
+
+      const response =
+        await fetch(
+          `${API_URL}/api/inventory/transfer`,
+          {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+              productId:
+                Number(
+                  transferForm.productId
+                ),
+              fromLocationId:
+                Number(
+                  transferForm.fromLocationId
+                ),
+              toLocationId:
+                Number(
+                  transferForm.toLocationId
+                ),
+              quantity:
+                Number(
+                  transferForm.quantity
+                ),
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        result.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "Unable to transfer stock"
+        );
+      }
+
+      await Promise.all([
+        fetchInventory(),
+        fetchProducts(),
+      ]);
+
+      closeTransferForm();
+
+      setInventoryActionSuccess(
+        "Stock transferred successfully."
+      );
+    } catch (error) {
+      console.error(
+        "Transfer stock error:",
+        error
       );
 
-      return total + Number(item?.quantity || 0);
-    }, 0);
+      setInventoryActionError(
+        error.message ||
+          "Unable to transfer stock."
+      );
+    } finally {
+      setSavingTransfer(false);
+    }
+  }
 
-    return {
-      ...location,
-      stock,
-    };
-  });
+  // =========================================================
+  // DAY 16 ADJUSTMENT FORM
+  // =========================================================
+
+  function handleAdjustmentFormChange(
+    event
+  ) {
+    const { name, value } =
+      event.target;
+
+    setAdjustmentForm(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+  }
+
+  function resetAdjustmentForm() {
+    setAdjustmentForm({
+      productId: "",
+      locationId: "",
+      adjustmentQuantity: "",
+    });
+  }
+
+  function openAdjustmentForm() {
+    resetAdjustmentForm();
+    setInventoryActionError("");
+    setInventoryActionSuccess("");
+    setShowAdjustmentForm(true);
+  }
+
+  function closeAdjustmentForm() {
+    setShowAdjustmentForm(false);
+    resetAdjustmentForm();
+  }
+
+  async function handleAdjustStock(
+    event
+  ) {
+    event.preventDefault();
+
+    setSavingAdjustment(true);
+    setInventoryActionError("");
+    setInventoryActionSuccess("");
+
+    try {
+      if (!adjustmentForm.productId) {
+        throw new Error(
+          "Please select a product."
+        );
+      }
+
+      if (!adjustmentForm.locationId) {
+        throw new Error(
+          "Please select a location."
+        );
+      }
+
+      if (
+        !adjustmentForm.adjustmentQuantity ||
+        Number(
+          adjustmentForm.adjustmentQuantity
+        ) === 0
+      ) {
+        throw new Error(
+          "Adjustment quantity must be a non-zero number."
+        );
+      }
+
+      const response =
+        await fetch(
+          `${API_URL}/api/inventory/adjust`,
+          {
+            method: "POST",
+            headers: getHeaders(true),
+            body: JSON.stringify({
+              productId:
+                Number(
+                  adjustmentForm.productId
+                ),
+              locationId:
+                Number(
+                  adjustmentForm.locationId
+                ),
+              adjustmentQuantity:
+                Number(
+                  adjustmentForm.adjustmentQuantity
+                ),
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        result.success === false
+      ) {
+        throw new Error(
+          result.message ||
+            "Unable to adjust stock"
+        );
+      }
+
+      await Promise.all([
+        fetchInventory(),
+        fetchProducts(),
+      ]);
+
+      closeAdjustmentForm();
+
+      setInventoryActionSuccess(
+        "Stock adjusted successfully."
+      );
+    } catch (error) {
+      console.error(
+        "Adjust stock error:",
+        error
+      );
+
+      setInventoryActionError(
+        error.message ||
+          "Unable to adjust stock."
+      );
+    } finally {
+      setSavingAdjustment(false);
+    }
+  }
 
   // =========================================================
   // LOGIN SCREEN
   // =========================================================
+
   if (!token) {
     return (
       <div className="login-page">
         <div className="login-card">
-          <div className="login-logo">SV</div>
+          <div className="login-logo">
+            SV
+          </div>
 
-          <h1>Sri Vengamamba</h1>
+          <h1>
+            Sri Vengamamba
+          </h1>
+
           <p className="login-subtitle">
             Oils & Automobiles
           </p>
 
-          <form onSubmit={handleLogin}>
+          <p className="login-subtitle">
+            Inventory Management System
+          </p>
+
+          <form
+            onSubmit={handleLogin}
+          >
             <div className="form-group">
-              <label>Email</label>
+              <label>
+                Email
+              </label>
 
               <input
                 type="email"
-                value={loginForm.email}
+                value={
+                  loginForm.email
+                }
                 onChange={(event) =>
                   setLoginForm({
                     ...loginForm,
-                    email: event.target.value,
+                    email:
+                      event.target
+                        .value,
                   })
                 }
                 placeholder="Enter email"
@@ -1210,15 +2074,21 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
+              <label>
+                Password
+              </label>
 
               <input
                 type="password"
-                value={loginForm.password}
+                value={
+                  loginForm.password
+                }
                 onChange={(event) =>
                   setLoginForm({
                     ...loginForm,
-                    password: event.target.value,
+                    password:
+                      event.target
+                        .value,
                   })
                 }
                 placeholder="Enter password"
@@ -1237,13 +2107,11 @@ function App() {
               className="primary-button full-width"
               disabled={loggingIn}
             >
-              {loggingIn ? "Logging in..." : "Login"}
+              {loggingIn
+                ? "Logging in..."
+                : "Login"}
             </button>
           </form>
-
-          <p className="login-footer">
-            Inventory Management System
-          </p>
         </div>
       </div>
     );
@@ -1252,33 +2120,45 @@ function App() {
   // =========================================================
   // DASHBOARD PAGE
   // =========================================================
+
   function DashboardPage() {
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Dashboard</h2>
+            <h2>
+              Dashboard
+            </h2>
+
             <p>
-              Overview of Sri Vengamamba inventory
+              Overview of Sri
+              Vengamamba inventory
             </p>
           </div>
 
           <button
             className="secondary-button"
             onClick={async () => {
-              setDashboardLoading(true);
+              setDashboardLoading(
+                true
+              );
 
               await Promise.all([
                 fetchProducts(),
                 fetchCategories(),
                 fetchBrands(),
                 fetchLocations(),
+                fetchInventory(),
               ]);
 
-              setDashboardLoading(false);
+              setDashboardLoading(
+                false
+              );
             }}
           >
-            {dashboardLoading ? "Refreshing..." : "↻ Refresh"}
+            {dashboardLoading
+              ? "Refreshing..."
+              : "↻ Refresh"}
           </button>
         </div>
 
@@ -1288,19 +2168,15 @@ function App() {
           </div>
         )}
 
-        {productFormError && (
-          <div className="alert alert-error">
-            {productFormError}
-          </div>
-        )}
-
         <div className="stats-grid">
           <div className="stat-card">
             <span className="stat-label">
               Total Products
             </span>
 
-            <strong>{totalProducts}</strong>
+            <strong>
+              {totalProducts}
+            </strong>
           </div>
 
           <div className="stat-card">
@@ -1308,7 +2184,9 @@ function App() {
               Total Stock
             </span>
 
-            <strong>{totalStock}</strong>
+            <strong>
+              {totalStock}
+            </strong>
           </div>
 
           <div className="stat-card">
@@ -1316,7 +2194,11 @@ function App() {
               Low Stock
             </span>
 
-            <strong>{lowStockProducts.length}</strong>
+            <strong>
+              {
+                lowStockProducts.length
+              }
+            </strong>
           </div>
 
           <div className="stat-card">
@@ -1325,7 +2207,10 @@ function App() {
             </span>
 
             <strong>
-              ₹{inventoryValue.toFixed(2)}
+              ₹
+              {inventoryValue.toFixed(
+                2
+              )}
             </strong>
           </div>
         </div>
@@ -1333,107 +2218,143 @@ function App() {
         <div className="dashboard-grid">
           <section className="dashboard-section">
             <div className="section-header">
-              <h3>Stock by Location</h3>
+              <h3>
+                Stock by Location
+              </h3>
             </div>
 
             <div className="location-cards">
-              {locationStock.length === 0 ? (
+              {locationStock.length ===
+              0 ? (
                 <p className="empty-state">
                   No locations found.
                 </p>
               ) : (
-                locationStock.map((location) => (
-                  <div
-                    className="location-card"
-                    key={location.id}
-                  >
-                    <h4>{location.name}</h4>
+                locationStock.map(
+                  (location) => (
+                    <div
+                      className="location-card"
+                      key={
+                        location.id
+                      }
+                    >
+                      <h4>
+                        {
+                          location.name
+                        }
+                      </h4>
 
-                    <p>
-                      {location.section &&
-                        `Section: ${location.section}`}
-                    </p>
+                      <p>
+                        {location.section
+                          ? `Section: ${location.section}`
+                          : ""}
+                      </p>
 
-                    <p>
-                      {location.rack &&
-                        `Rack: ${location.rack}`}
-                    </p>
+                      <p>
+                        {location.rack
+                          ? `Rack: ${location.rack}`
+                          : ""}
+                      </p>
 
-                    <p>
-                      {location.shelf &&
-                        `Shelf: ${location.shelf}`}
-                    </p>
+                      <p>
+                        {location.shelf
+                          ? `Shelf: ${location.shelf}`
+                          : ""}
+                      </p>
 
-                    <strong>
-                      {location.stock} units
-                    </strong>
-                  </div>
-                ))
+                      <strong>
+                        {
+                          location.stock
+                        }{" "}
+                        units
+                      </strong>
+                    </div>
+                  )
+                )
               )}
             </div>
           </section>
 
           <section className="dashboard-section">
             <div className="section-header">
-              <h3>Low Stock Products</h3>
+              <h3>
+                Low Stock Products
+              </h3>
             </div>
 
-            {lowStockProducts.length === 0 ? (
+            {lowStockProducts.length ===
+            0 ? (
               <div className="empty-state">
-                No low-stock products.
+                No low-stock
+                products.
               </div>
             ) : (
               <div className="table-container">
                 <table>
                   <thead>
                     <tr>
-                      <th>Product</th>
-                      <th>Stock</th>
-                      <th>Minimum</th>
-                      <th>Category</th>
-                      <th>Brand</th>
+                      <th>
+                        Product
+                      </th>
+                      <th>
+                        Stock
+                      </th>
+                      <th>
+                        Minimum
+                      </th>
+                      <th>
+                        Category
+                      </th>
+                      <th>
+                        Brand
+                      </th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {lowStockProducts.map((product) => {
-                      const inventory =
-                        product.inventory ||
-                        product.inventories ||
-                        [];
-
-                      const stock = Array.isArray(inventory)
-                        ? inventory.reduce(
-                            (sum, item) =>
-                              sum +
-                              Number(item.quantity || 0),
-                            0
-                          )
-                        : Number(product.quantity || 0);
-
-                      return (
-                        <tr key={product.id}>
-                          <td>{product.name}</td>
+                    {lowStockProducts.map(
+                      (product) => (
+                        <tr
+                          key={
+                            product.id
+                          }
+                        >
+                          <td>
+                            {
+                              product.name
+                            }
+                          </td>
 
                           <td className="low-stock-number">
-                            {stock}
+                            {
+                              getProductStock(
+                                product
+                              )
+                            }
                           </td>
 
                           <td>
-                            {product.minimumStock || 0}
+                            {
+                              product.minimumStock
+                            }
                           </td>
 
                           <td>
-                            {product.category?.name ||
-                              "Engine Oil"}
+                            {product
+                              .category
+                              ?.name ||
+                              "N/A"}
                           </td>
 
                           <td>
-                            {product.brand?.name || "N/A"}
+                            {product
+                              .brand
+                              ?.name ||
+                              "N/A"}
                           </td>
                         </tr>
-                      );
-                    })}
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1444,15 +2365,21 @@ function App() {
         <section className="dashboard-section">
           <div className="section-header">
             <div>
-              <h3>Products</h3>
+              <h3>
+                Products
+              </h3>
+
               <p>
-                Search and filter your products
+                Search and filter
+                your products
               </p>
             </div>
 
             <button
               className="primary-button"
-              onClick={handleAddProduct}
+              onClick={
+                handleAddProduct
+              }
             >
               + Add Product
             </button>
@@ -1461,51 +2388,73 @@ function App() {
           <div className="filter-bar">
             <input
               type="text"
-              value={productSearch}
+              value={
+                productSearch
+              }
               onChange={(event) =>
-                setProductSearch(event.target.value)
+                setProductSearch(
+                  event.target.value
+                )
               }
               placeholder="Search product, part number, vehicle..."
             />
 
             <select
-              value={productCategoryFilter}
+              value={
+                productCategoryFilter
+              }
               onChange={(event) =>
-                setProductCategoryFilter(event.target.value)
+                setProductCategoryFilter(
+                  event.target.value
+                )
               }
             >
               <option value="">
                 All Categories
               </option>
 
-              {categories.map((category) => (
-                <option
-                  key={category.id}
-                  value={category.id}
-                >
-                  {category.name}
-                </option>
-              ))}
+              {categories.map(
+                (category) => (
+                  <option
+                    key={
+                      category.id
+                    }
+                    value={
+                      category.id
+                    }
+                  >
+                    {
+                      category.name
+                    }
+                  </option>
+                )
+              )}
             </select>
 
             <select
-              value={productBrandFilter}
+              value={
+                productBrandFilter
+              }
               onChange={(event) =>
-                setProductBrandFilter(event.target.value)
+                setProductBrandFilter(
+                  event.target.value
+                )
               }
             >
               <option value="">
                 All Brands
               </option>
 
-              {brands.map((brand) => (
-                <option
-                  key={brand.id}
-                  value={brand.id}
-                >
-                  {brand.name}
-                </option>
-              ))}
+              {brands.map(
+                (brand) => (
+                  <option
+                    key={brand.id}
+                    value={brand.id}
+                  >
+                    {brand.name}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -1513,100 +2462,137 @@ function App() {
             <table>
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th>Part Number</th>
-                  <th>Vehicle</th>
-                  <th>Category</th>
-                  <th>Brand</th>
-                  <th>MRP</th>
-                  <th>Selling Price</th>
-                  <th>Stock</th>
+                  <th>
+                    Product
+                  </th>
+                  <th>
+                    Part Number
+                  </th>
+                  <th>
+                    Vehicle
+                  </th>
+                  <th>
+                    Category
+                  </th>
+                  <th>
+                    Brand
+                  </th>
+                  <th>
+                    MRP
+                  </th>
+                  <th>
+                    Selling Price
+                  </th>
+                  <th>
+                    Stock
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredProducts.length === 0 ? (
+                {filteredProducts.length ===
+                0 ? (
                   <tr>
                     <td
                       colSpan="8"
                       className="empty-table"
                     >
-                      No products found.
+                      No products
+                      found.
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product) => {
-                    const inventory =
-                      product.inventory ||
-                      product.inventories ||
-                      [];
+                  filteredProducts.map(
+                    (product) => {
+                      const stock =
+                        getProductStock(
+                          product
+                        );
 
-                    const stock = Array.isArray(inventory)
-                      ? inventory.reduce(
-                          (sum, item) =>
-                            sum +
-                            Number(item.quantity || 0),
-                          0
-                        )
-                      : Number(product.quantity || 0);
+                      const low =
+                        stock <=
+                        Number(
+                          product.minimumStock ||
+                            0
+                        );
 
-                    return (
-                      <tr key={product.id}>
-                        <td>
-                          <strong>
-                            {product.name}
-                          </strong>
-                        </td>
+                      return (
+                        <tr
+                          key={
+                            product.id
+                          }
+                        >
+                          <td>
+                            <strong>
+                              {
+                                product.name
+                              }
+                            </strong>
+                          </td>
 
-                        <td>
-                          {product.partNumber || "-"}
-                        </td>
-
-                        <td>
-                          {product.vehicleModel || "-"}
-                        </td>
-
-                        <td>
-                          {product.category?.name ||
-                            "N/A"}
-                        </td>
-
-                        <td>
-                          {product.brand?.name || "N/A"}
-                        </td>
-
-                        <td>
-                          ₹
-                          {Number(
-                            product.mrp || 0
-                          ).toFixed(2)}
-                        </td>
-
-                        <td>
-                          ₹
-                          {Number(
-                            product.sellingPrice || 0
-                          ).toFixed(2)}
-                        </td>
-
-                        <td>
-                          <span
-                            className={
-                              stock <=
-                              Number(
-                                product.minimumStock ||
-                                  0
-                              )
-                                ? "stock-badge low"
-                                : "stock-badge"
+                          <td>
+                            {
+                              product.partNumber ||
+                              "-"
                             }
-                          >
-                            {stock}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
+                          </td>
+
+                          <td>
+                            {
+                              product.vehicleModel ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {product
+                              .category
+                              ?.name ||
+                              "N/A"}
+                          </td>
+
+                          <td>
+                            {product
+                              .brand
+                              ?.name ||
+                              "N/A"}
+                          </td>
+
+                          <td>
+                            ₹
+                            {Number(
+                              product.mrp ||
+                                0
+                            ).toFixed(
+                              2
+                            )}
+                          </td>
+
+                          <td>
+                            ₹
+                            {Number(
+                              product.sellingPrice ||
+                                0
+                            ).toFixed(
+                              2
+                            )}
+                          </td>
+
+                          <td>
+                            <span
+                              className={
+                                low
+                                  ? "stock-badge low"
+                                  : "stock-badge"
+                              }
+                            >
+                              {stock}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
                 )}
               </tbody>
             </table>
@@ -1618,152 +2604,231 @@ function App() {
             <div className="modal-card">
               <div className="modal-header">
                 <div>
-                  <h3>Add Product</h3>
+                  <h3>
+                    Add Product
+                  </h3>
+
                   <p>
-                    Add a new product to inventory
+                    Add a new
+                    product to
+                    inventory
                   </p>
                 </div>
 
                 <button
                   className="close-button"
-                  onClick={closeProductForm}
+                  onClick={
+                    closeProductForm
+                  }
                 >
                   ×
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProduct}>
+              <form
+                onSubmit={
+                  handleSaveProduct
+                }
+              >
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Product Name *</label>
+                    <label>
+                      Product Name *
+                    </label>
 
                     <input
                       name="name"
-                      value={productForm.name}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.name
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       placeholder="Servo 4T Engine Oil"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Part Number *</label>
+                    <label>
+                      Part Number *
+                    </label>
 
                     <input
                       name="partNumber"
-                      value={productForm.partNumber}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.partNumber
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       placeholder="SERVO-4T-001"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Vehicle Model</label>
+                    <label>
+                      Vehicle Model
+                    </label>
 
                     <input
                       name="vehicleModel"
-                      value={productForm.vehicleModel}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.vehicleModel
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       placeholder="Honda, Bajaj..."
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>MRP *</label>
+                    <label>
+                      MRP *
+                    </label>
 
                     <input
                       type="number"
                       min="0"
                       name="mrp"
-                      value={productForm.mrp}
-                      onChange={handleProductFormChange}
-                      placeholder="550"
+                      value={
+                        productForm.mrp
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Selling Price *</label>
+                    <label>
+                      Selling Price *
+                    </label>
 
                     <input
                       type="number"
                       min="0"
                       name="sellingPrice"
-                      value={productForm.sellingPrice}
-                      onChange={handleProductFormChange}
-                      placeholder="500"
+                      value={
+                        productForm.sellingPrice
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Minimum Stock</label>
+                    <label>
+                      Minimum Stock
+                    </label>
 
                     <input
                       type="number"
                       min="0"
                       name="minimumStock"
-                      value={productForm.minimumStock}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.minimumStock
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       placeholder="10"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Category</label>
+                    <label>
+                      Category *
+                    </label>
 
                     <select
                       name="categoryId"
-                      value={productForm.categoryId}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.categoryId
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      required
                     >
                       <option value="">
                         Select category
                       </option>
 
-                      {categories.map((category) => (
-                        <option
-                          key={category.id}
-                          value={category.id}
-                        >
-                          {category.name}
-                        </option>
-                      ))}
+                      {categories.map(
+                        (category) => (
+                          <option
+                            key={
+                              category.id
+                            }
+                            value={
+                              category.id
+                            }
+                          >
+                            {
+                              category.name
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
 
                   <div className="form-group">
-                    <label>Brand</label>
+                    <label>
+                      Brand
+                    </label>
 
                     <select
                       name="brandId"
-                      value={productForm.brandId}
-                      onChange={handleProductFormChange}
+                      value={
+                        productForm.brandId
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                     >
                       <option value="">
                         Select brand
                       </option>
 
-                      {brands.map((brand) => (
-                        <option
-                          key={brand.id}
-                          value={brand.id}
-                        >
-                          {brand.name}
-                        </option>
-                      ))}
+                      {brands.map(
+                        (brand) => (
+                          <option
+                            key={
+                              brand.id
+                            }
+                            value={
+                              brand.id
+                            }
+                          >
+                            {
+                              brand.name
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
 
                   <div className="form-group full-span">
-                    <label>Description</label>
+                    <label>
+                      Description
+                    </label>
 
                     <textarea
                       name="description"
-                      value={productForm.description}
-                      onChange={handleProductFormChange}
-                      placeholder="Product description..."
+                      value={
+                        productForm.description
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
                       rows="3"
                     />
                   </div>
@@ -1771,7 +2836,9 @@ function App() {
 
                 {productFormError && (
                   <div className="alert alert-error">
-                    {productFormError}
+                    {
+                      productFormError
+                    }
                   </div>
                 )}
 
@@ -1779,7 +2846,9 @@ function App() {
                   <button
                     type="button"
                     className="secondary-button"
-                    onClick={closeProductForm}
+                    onClick={
+                      closeProductForm
+                    }
                   >
                     Cancel
                   </button>
@@ -1787,7 +2856,9 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingProduct}
+                    disabled={
+                      savingProduct
+                    }
                   >
                     {savingProduct
                       ? "Saving..."
@@ -1805,20 +2876,27 @@ function App() {
   // =========================================================
   // PURCHASES PAGE
   // =========================================================
+
   function PurchasesPage() {
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Purchase Management</h2>
+            <h2>
+              Purchase Management
+            </h2>
+
             <p>
-              Record purchases and increase inventory
+              Record purchases and
+              increase inventory
             </p>
           </div>
 
           <button
             className="secondary-button"
-            onClick={fetchPurchases}
+            onClick={
+              fetchPurchases
+            }
           >
             ↻ Refresh
           </button>
@@ -1839,145 +2917,213 @@ function App() {
         <section className="transaction-card">
           <div className="section-header">
             <div>
-              <h3>Create Purchase</h3>
+              <h3>
+                Create Purchase
+              </h3>
+
               <p>
-                Stock will automatically be added to
-                the selected location.
+                Stock will
+                automatically be
+                added to the
+                selected location.
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSavePurchase}>
+          <form
+            onSubmit={
+              handleSavePurchase
+            }
+          >
             <div className="form-grid">
               <div className="form-group">
-                <label>Supplier *</label>
+                <label>
+                  Supplier *
+                </label>
 
                 <select
                   name="supplierId"
-                  value={purchaseForm.supplierId}
-                  onChange={handlePurchaseFormChange}
+                  value={
+                    purchaseForm.supplierId
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 >
                   <option value="">
                     Select supplier
                   </option>
 
-                  {suppliers.map((supplier) => (
-                    <option
-                      key={supplier.id}
-                      value={supplier.id}
-                    >
-                      {supplier.name}
-                    </option>
-                  ))}
+                  {suppliers.map(
+                    (supplier) => (
+                      <option
+                        key={
+                          supplier.id
+                        }
+                        value={
+                          supplier.id
+                        }
+                      >
+                        {
+                          supplier.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
-
-                {suppliers.length === 0 && (
-                  <small>
-                    Add a supplier from Supplier
-                    Management first.
-                  </small>
-                )}
               </div>
 
               <div className="form-group">
-                <label>Invoice Number *</label>
+                <label>
+                  Invoice Number *
+                </label>
 
                 <input
                   name="invoiceNumber"
-                  value={purchaseForm.invoiceNumber}
-                  onChange={handlePurchaseFormChange}
-                  placeholder="INV-001"
+                  value={
+                    purchaseForm.invoiceNumber
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Purchase Date *</label>
+                <label>
+                  Purchase Date *
+                </label>
 
                 <input
                   type="date"
                   name="purchaseDate"
-                  value={purchaseForm.purchaseDate}
-                  onChange={handlePurchaseFormChange}
+                  value={
+                    purchaseForm.purchaseDate
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Product *</label>
+                <label>
+                  Product *
+                </label>
 
                 <select
                   name="productId"
-                  value={purchaseForm.productId}
-                  onChange={handlePurchaseFormChange}
+                  value={
+                    purchaseForm.productId
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 >
                   <option value="">
                     Select product
                   </option>
 
-                  {products.map((product) => (
-                    <option
-                      key={product.id}
-                      value={product.id}
-                    >
-                      {product.name} -{" "}
-                      {product.partNumber}
-                    </option>
-                  ))}
+                  {products.map(
+                    (product) => (
+                      <option
+                        key={
+                          product.id
+                        }
+                        value={
+                          product.id
+                        }
+                      >
+                        {
+                          product.name
+                        }{" "}
+                        -{" "}
+                        {
+                          product.partNumber
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Location *</label>
+                <label>
+                  Location *
+                </label>
 
                 <select
                   name="locationId"
-                  value={purchaseForm.locationId}
-                  onChange={handlePurchaseFormChange}
+                  value={
+                    purchaseForm.locationId
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 >
                   <option value="">
                     Select location
                   </option>
 
-                  {locations.map((location) => (
-                    <option
-                      key={location.id}
-                      value={location.id}
-                    >
-                      {location.name}
-                    </option>
-                  ))}
+                  {locations.map(
+                    (location) => (
+                      <option
+                        key={
+                          location.id
+                        }
+                        value={
+                          location.id
+                        }
+                      >
+                        {
+                          location.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Quantity *</label>
+                <label>
+                  Quantity *
+                </label>
 
                 <input
                   type="number"
                   min="1"
                   name="quantity"
-                  value={purchaseForm.quantity}
-                  onChange={handlePurchaseFormChange}
-                  placeholder="10"
+                  value={
+                    purchaseForm.quantity
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Purchase Price *</label>
+                <label>
+                  Purchase Price *
+                </label>
 
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   name="purchasePrice"
-                  value={purchaseForm.purchasePrice}
-                  onChange={handlePurchaseFormChange}
-                  placeholder="450"
+                  value={
+                    purchaseForm.purchasePrice
+                  }
+                  onChange={
+                    handlePurchaseFormChange
+                  }
                   required
                 />
               </div>
@@ -1987,7 +3133,9 @@ function App() {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={resetPurchaseForm}
+                onClick={
+                  resetPurchaseForm
+                }
               >
                 Clear
               </button>
@@ -1995,7 +3143,9 @@ function App() {
               <button
                 type="submit"
                 className="primary-button"
-                disabled={savingPurchase}
+                disabled={
+                  savingPurchase
+                }
               >
                 {savingPurchase
                   ? "Saving..."
@@ -2007,81 +3157,95 @@ function App() {
 
         <section className="history-section">
           <div className="section-header">
-            <div>
-              <h3>Purchase History</h3>
-              <p>
-                {purchases.length} purchase record(s)
-              </p>
-            </div>
+            <h3>
+              Purchase History
+            </h3>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Invoice</th>
-                  <th>Supplier</th>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Status</th>
+                  <th>
+                    ID
+                  </th>
+                  <th>
+                    Invoice
+                  </th>
+                  <th>
+                    Supplier
+                  </th>
+                  <th>
+                    Date
+                  </th>
+                  <th>
+                    Total
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {purchases.length === 0 ? (
+                {purchases.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="5"
                       className="empty-table"
                     >
-                      No purchase records found.
+                      No purchase
+                      records found.
                     </td>
                   </tr>
                 ) : (
-                  purchases.map((purchase) => (
-                    <tr key={purchase.id}>
-                      <td>{purchase.id}</td>
+                  purchases.map(
+                    (purchase) => (
+                      <tr
+                        key={
+                          purchase.id
+                        }
+                      >
+                        <td>
+                          {
+                            purchase.id
+                          }
+                        </td>
 
-                      <td>
-                        {purchase.invoiceNumber ||
-                          purchase.invoiceNo ||
-                          "-"}
-                      </td>
+                        <td>
+                          {
+                            purchase.invoiceNumber ||
+                            "-"
+                          }
+                        </td>
 
-                      <td>
-                        {purchase.supplier?.name ||
-                          purchase.supplierId ||
-                          "-"}
-                      </td>
+                        <td>
+                          {
+                            purchase
+                              .supplier
+                              ?.name ||
+                            purchase.supplierId
+                          }
+                        </td>
 
-                      <td>
-                        {purchase.purchaseDate
-                          ? new Date(
-                              purchase.purchaseDate
-                            ).toLocaleDateString()
-                          : purchase.createdAt
-                          ? new Date(
-                              purchase.createdAt
-                            ).toLocaleDateString()
-                          : "-"}
-                      </td>
+                        <td>
+                          {purchase.purchaseDate
+                            ? new Date(
+                                purchase.purchaseDate
+                              ).toLocaleDateString()
+                            : "-"}
+                        </td>
 
-                      <td>
-                        ₹
-                        {Number(
-                          purchase.totalAmount || 0
-                        ).toFixed(2)}
-                      </td>
-
-                      <td>
-                        <span className="status-badge">
-                          {purchase.status ||
-                            "COMPLETED"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                        <td>
+                          ₹
+                          {Number(
+                            purchase.totalAmount ||
+                              0
+                          ).toFixed(
+                            2
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )
                 )}
               </tbody>
             </table>
@@ -2094,22 +3258,28 @@ function App() {
   // =========================================================
   // SALES PAGE
   // =========================================================
+
   function SalesPage() {
-    const selectedStock = saleForm.productId &&
+    const selectedStock =
+      saleForm.productId &&
       saleForm.locationId
-      ? getInventoryQuantity(
-          saleForm.productId,
-          saleForm.locationId
-        )
-      : null;
+        ? getInventoryQuantity(
+            saleForm.productId,
+            saleForm.locationId
+          )
+        : null;
 
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Sales Management</h2>
+            <h2>
+              Sales Management
+            </h2>
+
             <p>
-              Record sales and automatically reduce
+              Record sales and
+              automatically reduce
               inventory
             </p>
           </div>
@@ -2136,135 +3306,192 @@ function App() {
 
         <section className="transaction-card">
           <div className="section-header">
-            <div>
-              <h3>Create Sale</h3>
-              <p>
-                Stock will automatically be reduced
-                from the selected location.
-              </p>
-            </div>
+            <h3>
+              Create Sale
+            </h3>
           </div>
 
-          <form onSubmit={handleSaveSale}>
+          <form
+            onSubmit={handleSaveSale}
+          >
             <div className="form-grid">
               <div className="form-group">
-                <label>Customer</label>
+                <label>
+                  Customer
+                </label>
 
                 <select
                   name="customerId"
-                  value={saleForm.customerId}
-                  onChange={handleSaleFormChange}
+                  value={
+                    saleForm.customerId
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                 >
                   <option value="">
                     Walk-in Customer
                   </option>
 
-                  {customers.map((customer) => (
-                    <option
-                      key={customer.id}
-                      value={customer.id}
-                    >
-                      {customer.name}
-                    </option>
-                  ))}
+                  {customers.map(
+                    (customer) => (
+                      <option
+                        key={
+                          customer.id
+                        }
+                        value={
+                          customer.id
+                        }
+                      >
+                        {
+                          customer.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Invoice Number *</label>
+                <label>
+                  Invoice Number *
+                </label>
 
                 <input
                   name="invoiceNumber"
-                  value={saleForm.invoiceNumber}
-                  onChange={handleSaleFormChange}
-                  placeholder="SALE-001"
+                  value={
+                    saleForm.invoiceNumber
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Product *</label>
+                <label>
+                  Product *
+                </label>
 
                 <select
                   name="productId"
-                  value={saleForm.productId}
-                  onChange={handleSaleFormChange}
+                  value={
+                    saleForm.productId
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                   required
                 >
                   <option value="">
                     Select product
                   </option>
 
-                  {products.map((product) => (
-                    <option
-                      key={product.id}
-                      value={product.id}
-                    >
-                      {product.name} -{" "}
-                      {product.partNumber}
-                    </option>
-                  ))}
+                  {products.map(
+                    (product) => (
+                      <option
+                        key={
+                          product.id
+                        }
+                        value={
+                          product.id
+                        }
+                      >
+                        {
+                          product.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Location *</label>
+                <label>
+                  Location *
+                </label>
 
                 <select
                   name="locationId"
-                  value={saleForm.locationId}
-                  onChange={handleSaleFormChange}
+                  value={
+                    saleForm.locationId
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                   required
                 >
                   <option value="">
                     Select location
                   </option>
 
-                  {locations.map((location) => (
-                    <option
-                      key={location.id}
-                      value={location.id}
-                    >
-                      {location.name}
-                    </option>
-                  ))}
+                  {locations.map(
+                    (location) => (
+                      <option
+                        key={
+                          location.id
+                        }
+                        value={
+                          location.id
+                        }
+                      >
+                        {
+                          location.name
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Quantity *</label>
+                <label>
+                  Quantity *
+                </label>
 
                 <input
                   type="number"
                   min="1"
                   name="quantity"
-                  value={saleForm.quantity}
-                  onChange={handleSaleFormChange}
-                  placeholder="1"
+                  value={
+                    saleForm.quantity
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                   required
                 />
 
-                {selectedStock !== null && (
+                {selectedStock !==
+                  null && (
                   <small>
                     Available stock:{" "}
                     <strong>
-                      {selectedStock}
+                      {
+                        selectedStock
+                      }
                     </strong>
                   </small>
                 )}
               </div>
 
               <div className="form-group">
-                <label>Selling Price *</label>
+                <label>
+                  Selling Price *
+                </label>
 
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   name="sellingPrice"
-                  value={saleForm.sellingPrice}
-                  onChange={handleSaleFormChange}
-                  placeholder="500"
+                  value={
+                    saleForm.sellingPrice
+                  }
+                  onChange={
+                    handleSaleFormChange
+                  }
                   required
                 />
               </div>
@@ -2274,7 +3501,9 @@ function App() {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={resetSaleForm}
+                onClick={
+                  resetSaleForm
+                }
               >
                 Clear
               </button>
@@ -2282,7 +3511,9 @@ function App() {
               <button
                 type="submit"
                 className="primary-button"
-                disabled={savingSale}
+                disabled={
+                  savingSale
+                }
               >
                 {savingSale
                   ? "Saving..."
@@ -2294,77 +3525,94 @@ function App() {
 
         <section className="history-section">
           <div className="section-header">
-            <div>
-              <h3>Sales History</h3>
-              <p>
-                {sales.length} sales record(s)
-              </p>
-            </div>
+            <h3>
+              Sales History
+            </h3>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Invoice</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Status</th>
+                  <th>
+                    ID
+                  </th>
+                  <th>
+                    Invoice
+                  </th>
+                  <th>
+                    Customer
+                  </th>
+                  <th>
+                    Date
+                  </th>
+                  <th>
+                    Total
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {sales.length === 0 ? (
+                {sales.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="5"
                       className="empty-table"
                     >
-                      No sales records found.
+                      No sales
+                      records found.
                     </td>
                   </tr>
                 ) : (
-                  sales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td>{sale.id}</td>
+                  sales.map(
+                    (sale) => (
+                      <tr
+                        key={
+                          sale.id
+                        }
+                      >
+                        <td>
+                          {
+                            sale.id
+                          }
+                        </td>
 
-                      <td>
-                        {sale.invoiceNumber ||
-                          sale.invoiceNo ||
-                          "-"}
-                      </td>
+                        <td>
+                          {
+                            sale.invoiceNumber ||
+                            "-"
+                          }
+                        </td>
 
-                      <td>
-                        {sale.customer?.name ||
-                          sale.customerId ||
-                          "Walk-in"}
-                      </td>
+                        <td>
+                          {
+                            sale.customer
+                              ?.name ||
+                            "Walk-in"
+                          }
+                        </td>
 
-                      <td>
-                        {sale.createdAt
-                          ? new Date(
-                              sale.createdAt
-                            ).toLocaleDateString()
-                          : "-"}
-                      </td>
+                        <td>
+                          {sale.createdAt
+                            ? new Date(
+                                sale.createdAt
+                              ).toLocaleDateString()
+                            : "-"}
+                        </td>
 
-                      <td>
-                        ₹
-                        {Number(
-                          sale.totalAmount || 0
-                        ).toFixed(2)}
-                      </td>
-
-                      <td>
-                        <span className="status-badge">
-                          {sale.status ||
-                            "COMPLETED"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                        <td>
+                          ₹
+                          {Number(
+                            sale.totalAmount ||
+                              0
+                          ).toFixed(
+                            2
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )
                 )}
               </tbody>
             </table>
@@ -2377,29 +3625,36 @@ function App() {
   // =========================================================
   // SUPPLIERS PAGE
   // =========================================================
+
   function SuppliersPage() {
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Supplier Management</h2>
+            <h2>
+              Supplier Management
+            </h2>
+
             <p>
-              Manage suppliers for your automobile
-              shop
+              Manage suppliers
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={fetchSuppliers}
+              onClick={
+                fetchSuppliers
+              }
             >
               ↻ Refresh
             </button>
 
             <button
               className="primary-button"
-              onClick={handleAddSupplier}
+              onClick={
+                handleAddSupplier
+              }
             >
               + Add Supplier
             </button>
@@ -2408,112 +3663,135 @@ function App() {
 
         {supplierFormSuccess && (
           <div className="alert alert-success">
-            {supplierFormSuccess}
+            {
+              supplierFormSuccess
+            }
           </div>
         )}
 
         {supplierFormError && (
           <div className="alert alert-error">
-            {supplierFormError}
+            {
+              supplierFormError
+            }
           </div>
         )}
 
         <section className="management-card">
           <div className="section-header">
-            <div>
-              <h3>Suppliers</h3>
-              <p>
-                {suppliers.length} supplier(s)
-                registered
-              </p>
-            </div>
+            <h3>
+              Suppliers
+            </h3>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Address</th>
-                  <th>Purchases</th>
-                  <th>Actions</th>
+                  <th>
+                    ID
+                  </th>
+                  <th>
+                    Name
+                  </th>
+                  <th>
+                    Phone
+                  </th>
+                  <th>
+                    Email
+                  </th>
+                  <th>
+                    Address
+                  </th>
+                  <th>
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {suppliers.length === 0 ? (
+                {suppliers.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan="6"
                       className="empty-table"
                     >
-                      No suppliers found. Click
-                      "Add Supplier" to create one.
+                      No suppliers
+                      found.
                     </td>
                   </tr>
                 ) : (
-                  suppliers.map((supplier) => (
-                    <tr key={supplier.id}>
-                      <td>{supplier.id}</td>
+                  suppliers.map(
+                    (supplier) => (
+                      <tr
+                        key={
+                          supplier.id
+                        }
+                      >
+                        <td>
+                          {
+                            supplier.id
+                          }
+                        </td>
 
-                      <td>
-                        <strong>
-                          {supplier.name}
-                        </strong>
-                      </td>
-
-                      <td>
-                        {supplier.phone || "-"}
-                      </td>
-
-                      <td>
-                        {supplier.email || "-"}
-                      </td>
-
-                      <td>
-                        {supplier.address || "-"}
-                      </td>
-
-                      <td>
-                        <span className="count-badge">
-                          {Array.isArray(
-                            supplier.purchases
-                          )
-                            ? supplier.purchases.length
-                            : 0}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="edit-button"
-                            onClick={() =>
-                              handleEditSupplier(
-                                supplier
-                              )
+                        <td>
+                          <strong>
+                            {
+                              supplier.name
                             }
-                          >
-                            Edit
-                          </button>
+                          </strong>
+                        </td>
 
-                          <button
-                            className="delete-button"
-                            onClick={() =>
-                              handleDeleteSupplier(
-                                supplier.id
-                              )
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        <td>
+                          {
+                            supplier.phone ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            supplier.email ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            supplier.address ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="edit-button"
+                              onClick={() =>
+                                handleEditSupplier(
+                                  supplier
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              className="delete-button"
+                              onClick={() =>
+                                handleDeleteSupplier(
+                                  supplier.id
+                                )
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )
                 )}
               </tbody>
             </table>
@@ -2524,80 +3802,92 @@ function App() {
           <div className="modal-overlay">
             <div className="modal-card">
               <div className="modal-header">
-                <div>
-                  <h3>
-                    {editingSupplierId !== null
-                      ? "Edit Supplier"
-                      : "Add Supplier"}
-                  </h3>
-
-                  <p>
-                    Enter supplier contact
-                    information
-                  </p>
-                </div>
+                <h3>
+                  {editingSupplierId !==
+                  null
+                    ? "Edit Supplier"
+                    : "Add Supplier"}
+                </h3>
 
                 <button
                   className="close-button"
-                  onClick={handleCancelSupplierForm}
+                  onClick={
+                    handleCancelSupplierForm
+                  }
                 >
                   ×
                 </button>
               </div>
 
-              <form onSubmit={handleSaveSupplier}>
+              <form
+                onSubmit={
+                  handleSaveSupplier
+                }
+              >
                 <div className="form-grid">
                   <div className="form-group full-span">
-                    <label>Supplier Name *</label>
+                    <label>
+                      Supplier Name *
+                    </label>
 
                     <input
                       name="name"
-                      value={supplierForm.name}
+                      value={
+                        supplierForm.name
+                      }
                       onChange={
                         handleSupplierFormChange
                       }
-                      placeholder="Enter supplier name"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Phone</label>
+                    <label>
+                      Phone
+                    </label>
 
                     <input
                       name="phone"
-                      value={supplierForm.phone}
+                      value={
+                        supplierForm.phone
+                      }
                       onChange={
                         handleSupplierFormChange
                       }
-                      placeholder="9876543210"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Email</label>
+                    <label>
+                      Email
+                    </label>
 
                     <input
                       type="email"
                       name="email"
-                      value={supplierForm.email}
+                      value={
+                        supplierForm.email
+                      }
                       onChange={
                         handleSupplierFormChange
                       }
-                      placeholder="supplier@example.com"
                     />
                   </div>
 
                   <div className="form-group full-span">
-                    <label>Address</label>
+                    <label>
+                      Address
+                    </label>
 
                     <textarea
                       name="address"
-                      value={supplierForm.address}
+                      value={
+                        supplierForm.address
+                      }
                       onChange={
                         handleSupplierFormChange
                       }
-                      placeholder="Supplier address"
                       rows="3"
                     />
                   </div>
@@ -2605,7 +3895,9 @@ function App() {
 
                 {supplierFormError && (
                   <div className="alert alert-error">
-                    {supplierFormError}
+                    {
+                      supplierFormError
+                    }
                   </div>
                 )}
 
@@ -2623,11 +3915,14 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingSupplier}
+                    disabled={
+                      savingSupplier
+                    }
                   >
                     {savingSupplier
                       ? "Saving..."
-                      : editingSupplierId !== null
+                      : editingSupplierId !==
+                        null
                       ? "Update Supplier"
                       : "Save Supplier"}
                   </button>
@@ -2643,29 +3938,36 @@ function App() {
   // =========================================================
   // CUSTOMERS PAGE
   // =========================================================
+
   function CustomersPage() {
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Customer Management</h2>
+            <h2>
+              Customer Management
+            </h2>
+
             <p>
-              Manage customers for your automobile
-              shop
+              Manage customers
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={fetchCustomers}
+              onClick={
+                fetchCustomers
+              }
             >
               ↻ Refresh
             </button>
 
             <button
               className="primary-button"
-              onClick={handleAddCustomer}
+              onClick={
+                handleAddCustomer
+              }
             >
               + Add Customer
             </button>
@@ -2674,112 +3976,135 @@ function App() {
 
         {customerFormSuccess && (
           <div className="alert alert-success">
-            {customerFormSuccess}
+            {
+              customerFormSuccess
+            }
           </div>
         )}
 
         {customerFormError && (
           <div className="alert alert-error">
-            {customerFormError}
+            {
+              customerFormError
+            }
           </div>
         )}
 
         <section className="management-card">
           <div className="section-header">
-            <div>
-              <h3>Customers</h3>
-              <p>
-                {customers.length} customer(s)
-                registered
-              </p>
-            </div>
+            <h3>
+              Customers
+            </h3>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Address</th>
-                  <th>Sales</th>
-                  <th>Actions</th>
+                  <th>
+                    ID
+                  </th>
+                  <th>
+                    Name
+                  </th>
+                  <th>
+                    Phone
+                  </th>
+                  <th>
+                    Email
+                  </th>
+                  <th>
+                    Address
+                  </th>
+                  <th>
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {customers.length === 0 ? (
+                {customers.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan="6"
                       className="empty-table"
                     >
-                      No customers found. Click
-                      "Add Customer" to create one.
+                      No customers
+                      found.
                     </td>
                   </tr>
                 ) : (
-                  customers.map((customer) => (
-                    <tr key={customer.id}>
-                      <td>{customer.id}</td>
+                  customers.map(
+                    (customer) => (
+                      <tr
+                        key={
+                          customer.id
+                        }
+                      >
+                        <td>
+                          {
+                            customer.id
+                          }
+                        </td>
 
-                      <td>
-                        <strong>
-                          {customer.name}
-                        </strong>
-                      </td>
-
-                      <td>
-                        {customer.phone || "-"}
-                      </td>
-
-                      <td>
-                        {customer.email || "-"}
-                      </td>
-
-                      <td>
-                        {customer.address || "-"}
-                      </td>
-
-                      <td>
-                        <span className="count-badge">
-                          {Array.isArray(
-                            customer.sales
-                          )
-                            ? customer.sales.length
-                            : 0}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="edit-button"
-                            onClick={() =>
-                              handleEditCustomer(
-                                customer
-                              )
+                        <td>
+                          <strong>
+                            {
+                              customer.name
                             }
-                          >
-                            Edit
-                          </button>
+                          </strong>
+                        </td>
 
-                          <button
-                            className="delete-button"
-                            onClick={() =>
-                              handleDeleteCustomer(
-                                customer.id
-                              )
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        <td>
+                          {
+                            customer.phone ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            customer.email ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            customer.address ||
+                            "-"
+                          }
+                        </td>
+
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="edit-button"
+                              onClick={() =>
+                                handleEditCustomer(
+                                  customer
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              className="delete-button"
+                              onClick={() =>
+                                handleDeleteCustomer(
+                                  customer.id
+                                )
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )
                 )}
               </tbody>
             </table>
@@ -2790,80 +4115,92 @@ function App() {
           <div className="modal-overlay">
             <div className="modal-card">
               <div className="modal-header">
-                <div>
-                  <h3>
-                    {editingCustomerId !== null
-                      ? "Edit Customer"
-                      : "Add Customer"}
-                  </h3>
-
-                  <p>
-                    Enter customer contact
-                    information
-                  </p>
-                </div>
+                <h3>
+                  {editingCustomerId !==
+                  null
+                    ? "Edit Customer"
+                    : "Add Customer"}
+                </h3>
 
                 <button
                   className="close-button"
-                  onClick={handleCancelCustomerForm}
+                  onClick={
+                    handleCancelCustomerForm
+                  }
                 >
                   ×
                 </button>
               </div>
 
-              <form onSubmit={handleSaveCustomer}>
+              <form
+                onSubmit={
+                  handleSaveCustomer
+                }
+              >
                 <div className="form-grid">
                   <div className="form-group full-span">
-                    <label>Customer Name *</label>
+                    <label>
+                      Customer Name *
+                    </label>
 
                     <input
                       name="name"
-                      value={customerForm.name}
+                      value={
+                        customerForm.name
+                      }
                       onChange={
                         handleCustomerFormChange
                       }
-                      placeholder="Enter customer name"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Phone</label>
+                    <label>
+                      Phone
+                    </label>
 
                     <input
                       name="phone"
-                      value={customerForm.phone}
+                      value={
+                        customerForm.phone
+                      }
                       onChange={
                         handleCustomerFormChange
                       }
-                      placeholder="9876543210"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Email</label>
+                    <label>
+                      Email
+                    </label>
 
                     <input
                       type="email"
                       name="email"
-                      value={customerForm.email}
+                      value={
+                        customerForm.email
+                      }
                       onChange={
                         handleCustomerFormChange
                       }
-                      placeholder="customer@example.com"
                     />
                   </div>
 
                   <div className="form-group full-span">
-                    <label>Address</label>
+                    <label>
+                      Address
+                    </label>
 
                     <textarea
                       name="address"
-                      value={customerForm.address}
+                      value={
+                        customerForm.address
+                      }
                       onChange={
                         handleCustomerFormChange
                       }
-                      placeholder="Customer address"
                       rows="3"
                     />
                   </div>
@@ -2871,7 +4208,9 @@ function App() {
 
                 {customerFormError && (
                   <div className="alert alert-error">
-                    {customerFormError}
+                    {
+                      customerFormError
+                    }
                   </div>
                 )}
 
@@ -2889,11 +4228,14 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingCustomer}
+                    disabled={
+                      savingCustomer
+                    }
                   >
                     {savingCustomer
                       ? "Saving..."
-                      : editingCustomerId !== null
+                      : editingCustomerId !==
+                        null
                       ? "Update Customer"
                       : "Save Customer"}
                   </button>
@@ -2907,16 +4249,928 @@ function App() {
   }
 
   // =========================================================
-  // MAIN APP
+  // DAY 16 - INVENTORY PAGE
   // =========================================================
+
+  function InventoryPage() {
+    return (
+      <div>
+        <div className="page-heading">
+          <div>
+            <h2>
+              Inventory Control
+            </h2>
+
+            <p>
+              Search, monitor,
+              transfer and adjust
+              stock
+            </p>
+          </div>
+
+          <div className="heading-actions">
+            <button
+              className="secondary-button"
+              onClick={
+                fetchInventory
+              }
+              disabled={
+                inventoryLoading
+              }
+            >
+              {inventoryLoading
+                ? "Refreshing..."
+                : "↻ Refresh"}
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                openTransferForm
+              }
+            >
+              ⇄ Transfer Stock
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                openAdjustmentForm
+              }
+            >
+              ± Adjust Stock
+            </button>
+          </div>
+        </div>
+
+        {inventoryActionSuccess && (
+          <div className="alert alert-success">
+            {
+              inventoryActionSuccess
+            }
+          </div>
+        )}
+
+        {inventoryActionError && (
+          <div className="alert alert-error">
+            {
+              inventoryActionError
+            }
+          </div>
+        )}
+
+        {inventoryError && (
+          <div className="alert alert-error">
+            {inventoryError}
+          </div>
+        )}
+
+        {/* SUMMARY */}
+
+        <div className="inventory-summary-grid">
+          <div className="inventory-summary-card">
+            <span>
+              Total Stock
+            </span>
+
+            <strong>
+              {
+                inventoryTotalStock
+              }
+            </strong>
+
+            <small>
+              Units across all
+              locations
+            </small>
+          </div>
+
+          <div className="inventory-summary-card">
+            <span>
+              Low Stock Records
+            </span>
+
+            <strong className="inventory-danger">
+              {
+                inventoryLowStockCount
+              }
+            </strong>
+
+            <small>
+              At or below minimum
+              stock
+            </small>
+          </div>
+
+          <div className="inventory-summary-card">
+            <span>
+              Locations Used
+            </span>
+
+            <strong>
+              {
+                inventoryLocationsUsed
+              }
+            </strong>
+
+            <small>
+              Locations with
+              inventory
+            </small>
+          </div>
+
+          <div className="inventory-summary-card">
+            <span>
+              Displayed Records
+            </span>
+
+            <strong>
+              {
+                filteredInventory.length
+              }
+            </strong>
+
+            <small>
+              After filters
+            </small>
+          </div>
+        </div>
+
+        {/* FILTERS */}
+
+        <section className="inventory-filter-card">
+          <div className="section-header">
+            <div>
+              <h3>
+                Search & Filter
+                Inventory
+              </h3>
+
+              <p>
+                Find stock by
+                product, part
+                number or
+                location
+              </p>
+            </div>
+          </div>
+
+          <div className="inventory-filter-grid">
+            <div className="form-group">
+              <label>
+                Search
+              </label>
+
+              <input
+                type="text"
+                value={
+                  inventorySearch
+                }
+                onChange={(event) =>
+                  setInventorySearch(
+                    event.target
+                      .value
+                  )
+                }
+                placeholder="Product, part number, vehicle, location..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label>
+                Location
+              </label>
+
+              <select
+                value={
+                  inventoryLocationFilter
+                }
+                onChange={(event) =>
+                  setInventoryLocationFilter(
+                    event.target
+                      .value
+                  )
+                }
+              >
+                <option value="">
+                  All Locations
+                </option>
+
+                {locations.map(
+                  (location) => (
+                    <option
+                      key={
+                        location.id
+                      }
+                      value={
+                        location.id
+                      }
+                    >
+                      {
+                        location.name
+                      }
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            <div className="inventory-checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={
+                    inventoryLowStockOnly
+                  }
+                  onChange={(event) =>
+                    setInventoryLowStockOnly(
+                      event.target
+                        .checked
+                    )
+                  }
+                />
+
+                <span>
+                  Low Stock Only
+                </span>
+              </label>
+            </div>
+
+            <div className="inventory-filter-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setInventorySearch(
+                    ""
+                  );
+
+                  setInventoryLocationFilter(
+                    ""
+                  );
+
+                  setInventoryLowStockOnly(
+                    false
+                  );
+                }}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* CURRENT STOCK */}
+
+        <section className="management-card">
+          <div className="section-header">
+            <div>
+              <h3>
+                Current Stock
+              </h3>
+
+              <p>
+                {
+                  filteredInventory.length
+                }{" "}
+                inventory
+                record(s)
+              </p>
+            </div>
+          </div>
+
+          {inventoryLoading &&
+          inventory.length === 0 ? (
+            <div className="empty-state">
+              Loading inventory...
+            </div>
+          ) : (
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>
+                      Product
+                    </th>
+
+                    <th>
+                      Part Number
+                    </th>
+
+                    <th>
+                      Category
+                    </th>
+
+                    <th>
+                      Location
+                    </th>
+
+                    <th>
+                      Rack
+                    </th>
+
+                    <th>
+                      Shelf
+                    </th>
+
+                    <th>
+                      Section
+                    </th>
+
+                    <th>
+                      Stock
+                    </th>
+
+                    <th>
+                      Minimum
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredInventory.length ===
+                  0 ? (
+                    <tr>
+                      <td
+                        colSpan="10"
+                        className="empty-table"
+                      >
+                        No inventory
+                        records match
+                        your filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInventory.map(
+                      (item) => {
+                        const quantity =
+                          Number(
+                            item.quantity ||
+                              0
+                          );
+
+                        const minimum =
+                          Number(
+                            item
+                              .product
+                              ?.minimumStock ||
+                              0
+                          );
+
+                        const isLow =
+                          quantity <=
+                          minimum;
+
+                        return (
+                          <tr
+                            key={
+                              item.id
+                            }
+                          >
+                            <td>
+                              <strong>
+                                {
+                                  item
+                                    .product
+                                    ?.name
+                                }
+                              </strong>
+
+                              {item
+                                .product
+                                ?.vehicleModel && (
+                                <div className="table-subtext">
+                                  {
+                                    item
+                                      .product
+                                      .vehicleModel
+                                  }
+                                </div>
+                              )}
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .product
+                                  ?.partNumber ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .product
+                                  ?.category
+                                  ?.name ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .location
+                                  ?.name ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .location
+                                  ?.rack ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .location
+                                  ?.shelf ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item
+                                  .location
+                                  ?.section ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  isLow
+                                    ? "stock-badge low"
+                                    : "stock-badge"
+                                }
+                              >
+                                {
+                                  quantity
+                                }
+                              </span>
+                            </td>
+
+                            <td>
+                              {
+                                minimum
+                              }
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  isLow
+                                    ? "inventory-status low"
+                                    : "inventory-status normal"
+                                }
+                              >
+                                {isLow
+                                  ? "LOW STOCK"
+                                  : "IN STOCK"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* TRANSFER MODAL */}
+
+        {showTransferForm && (
+          <div className="modal-overlay">
+            <div className="modal-card inventory-modal">
+              <div className="modal-header">
+                <div>
+                  <h3>
+                    Transfer Stock
+                  </h3>
+
+                  <p>
+                    Move stock from
+                    one location to
+                    another.
+                  </p>
+                </div>
+
+                <button
+                  className="close-button"
+                  onClick={
+                    closeTransferForm
+                  }
+                >
+                  ×
+                </button>
+              </div>
+
+              <form
+                onSubmit={
+                  handleTransferStock
+                }
+              >
+                <div className="form-grid">
+                  <div className="form-group full-span">
+                    <label>
+                      Product *
+                    </label>
+
+                    <select
+                      name="productId"
+                      value={
+                        transferForm.productId
+                      }
+                      onChange={
+                        handleTransferFormChange
+                      }
+                      required
+                    >
+                      <option value="">
+                        Select product
+                      </option>
+
+                      {products.map(
+                        (product) => (
+                          <option
+                            key={
+                              product.id
+                            }
+                            value={
+                              product.id
+                            }
+                          >
+                            {
+                              product.name
+                            }{" "}
+                            -{" "}
+                            {
+                              product.partNumber ||
+                              "No Part Number"
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      From Location *
+                    </label>
+
+                    <select
+                      name="fromLocationId"
+                      value={
+                        transferForm.fromLocationId
+                      }
+                      onChange={
+                        handleTransferFormChange
+                      }
+                      required
+                    >
+                      <option value="">
+                        Select source
+                      </option>
+
+                      {locations.map(
+                        (location) => (
+                          <option
+                            key={
+                              location.id
+                            }
+                            value={
+                              location.id
+                            }
+                          >
+                            {
+                              location.name
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      To Location *
+                    </label>
+
+                    <select
+                      name="toLocationId"
+                      value={
+                        transferForm.toLocationId
+                      }
+                      onChange={
+                        handleTransferFormChange
+                      }
+                      required
+                    >
+                      <option value="">
+                        Select destination
+                      </option>
+
+                      {locations.map(
+                        (location) => (
+                          <option
+                            key={
+                              location.id
+                            }
+                            value={
+                              location.id
+                            }
+                          >
+                            {
+                              location.name
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Quantity *
+                    </label>
+
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="quantity"
+                      value={
+                        transferForm.quantity
+                      }
+                      onChange={
+                        handleTransferFormChange
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+
+                {inventoryActionError && (
+                  <div className="alert alert-error">
+                    {
+                      inventoryActionError
+                    }
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={
+                      closeTransferForm
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={
+                      savingTransfer
+                    }
+                  >
+                    {savingTransfer
+                      ? "Transferring..."
+                      : "Transfer Stock"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ADJUSTMENT MODAL */}
+
+        {showAdjustmentForm && (
+          <div className="modal-overlay">
+            <div className="modal-card inventory-modal">
+              <div className="modal-header">
+                <div>
+                  <h3>
+                    Adjust Stock
+                  </h3>
+
+                  <p>
+                    Positive number
+                    adds stock.
+                    Negative number
+                    removes stock.
+                  </p>
+                </div>
+
+                <button
+                  className="close-button"
+                  onClick={
+                    closeAdjustmentForm
+                  }
+                >
+                  ×
+                </button>
+              </div>
+
+              <form
+                onSubmit={
+                  handleAdjustStock
+                }
+              >
+                <div className="form-grid">
+                  <div className="form-group full-span">
+                    <label>
+                      Product *
+                    </label>
+
+                    <select
+                      name="productId"
+                      value={
+                        adjustmentForm.productId
+                      }
+                      onChange={
+                        handleAdjustmentFormChange
+                      }
+                      required
+                    >
+                      <option value="">
+                        Select product
+                      </option>
+
+                      {products.map(
+                        (product) => (
+                          <option
+                            key={
+                              product.id
+                            }
+                            value={
+                              product.id
+                            }
+                          >
+                            {
+                              product.name
+                            }{" "}
+                            -{" "}
+                            {
+                              product.partNumber ||
+                              "No Part Number"
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Location *
+                    </label>
+
+                    <select
+                      name="locationId"
+                      value={
+                        adjustmentForm.locationId
+                      }
+                      onChange={
+                        handleAdjustmentFormChange
+                      }
+                      required
+                    >
+                      <option value="">
+                        Select location
+                      </option>
+
+                      {locations.map(
+                        (location) => (
+                          <option
+                            key={
+                              location.id
+                            }
+                            value={
+                              location.id
+                            }
+                          >
+                            {
+                              location.name
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Adjustment Quantity *
+                    </label>
+
+                    <input
+                      type="number"
+                      step="1"
+                      name="adjustmentQuantity"
+                      value={
+                        adjustmentForm.adjustmentQuantity
+                      }
+                      onChange={
+                        handleAdjustmentFormChange
+                      }
+                      placeholder="5 or -5"
+                      required
+                    />
+
+                    <small>
+                      Example:
+                      <strong>
+                        +5
+                      </strong>{" "}
+                      adds five
+                      units;
+                      <strong>
+                        -5
+                      </strong>{" "}
+                      removes five
+                      units.
+                    </small>
+                  </div>
+                </div>
+
+                {inventoryActionError && (
+                  <div className="alert alert-error">
+                    {
+                      inventoryActionError
+                    }
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={
+                      closeAdjustmentForm
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={
+                      savingAdjustment
+                    }
+                  >
+                    {savingAdjustment
+                      ? "Adjusting..."
+                      : "Adjust Stock"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================
+  // MAIN APPLICATION
+  // =========================================================
+
   return (
     <div className="app">
+      {/* HEADER */}
+
       <header className="top-header">
         <div className="brand-section">
-          <div className="brand-logo">SV</div>
+          <div className="brand-logo">
+            SV
+          </div>
 
           <div>
-            <h1>Sri Vengamamba</h1>
+            <h1>
+              Sri Vengamamba
+            </h1>
+
             <span>
               Oils & Automobiles
             </span>
@@ -2926,32 +5180,41 @@ function App() {
         <div className="user-section">
           <div className="user-info">
             <strong>
-              {user?.name || "Admin"}
+              {user?.name ||
+                "Admin"}
             </strong>
 
             <span>
-              {user?.role || "ADMIN"}
+              {user?.role ||
+                "ADMIN"}
             </span>
           </div>
 
           <button
             className="logout-button"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
             Logout
           </button>
         </div>
       </header>
 
+      {/* NAVIGATION */}
+
       <nav className="navigation">
         <button
           className={
-            activePage === "dashboard"
+            activePage ===
+            "dashboard"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("dashboard")
+            setActivePage(
+              "dashboard"
+            )
           }
         >
           Dashboard
@@ -2959,12 +5222,15 @@ function App() {
 
         <button
           className={
-            activePage === "purchases"
+            activePage ===
+            "purchases"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("purchases")
+            setActivePage(
+              "purchases"
+            )
           }
         >
           Purchases
@@ -2976,19 +5242,24 @@ function App() {
               ? "nav-button active"
               : "nav-button"
           }
-          onClick={() => setActivePage("sales")}
+          onClick={() =>
+            setActivePage("sales")
+          }
         >
           Sales
         </button>
 
         <button
           className={
-            activePage === "suppliers"
+            activePage ===
+            "suppliers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("suppliers")
+            setActivePage(
+              "suppliers"
+            )
           }
         >
           Suppliers
@@ -2996,47 +5267,86 @@ function App() {
 
         <button
           className={
-            activePage === "customers"
+            activePage ===
+            "customers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("customers")
+            setActivePage(
+              "customers"
+            )
           }
         >
           Customers
         </button>
+
+        {/* DAY 16 */}
+
+        <button
+          className={
+            activePage ===
+            "inventory"
+              ? "nav-button active"
+              : "nav-button"
+          }
+          onClick={() =>
+            setActivePage(
+              "inventory"
+            )
+          }
+        >
+          Inventory
+        </button>
       </nav>
 
+      {/* PAGE */}
+
       <main className="main-content">
-        {activePage === "dashboard" && (
+        {activePage ===
+          "dashboard" && (
           <DashboardPage />
         )}
 
-        {activePage === "purchases" && (
+        {activePage ===
+          "purchases" && (
           <PurchasesPage />
         )}
 
-        {activePage === "sales" && (
+        {activePage ===
+          "sales" && (
           <SalesPage />
         )}
 
-        {activePage === "suppliers" && (
+        {activePage ===
+          "suppliers" && (
           <SuppliersPage />
         )}
 
-        {activePage === "customers" && (
+        {activePage ===
+          "customers" && (
           <CustomersPage />
+        )}
+
+        {activePage ===
+          "inventory" && (
+          <InventoryPage />
         )}
       </main>
 
+      {/* FOOTER */}
+
       <footer className="app-footer">
-        Sri Vengamamba Oils & Automobiles
+        Sri Vengamamba Oils &
+        Automobiles
+
         <span>•</span>
-        Inventory Management System
+
+        Inventory Management
+        System
       </footer>
     </div>
   );
 }
 
-export default App;
+export default App; 
