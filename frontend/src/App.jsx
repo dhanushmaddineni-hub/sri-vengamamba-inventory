@@ -1,4 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 import "./App.css";
 
 const API_URL = "http://localhost:5000";
@@ -197,10 +209,6 @@ function App() {
   const [reportLocationFilter, setReportLocationFilter] = useState("");
   const [reportCategoryFilter, setReportCategoryFilter] = useState("");
   const [reportStatusFilter, setReportStatusFilter] = useState("");
-
-  // =========================================================
-  // DASHBOARD
-  // =========================================================
 
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
@@ -499,6 +507,7 @@ function App() {
       );
     } catch (error) {
       console.error("Fetch inventory error:", error);
+
       setInventoryError(
         error.message || "Unable to load inventory"
       );
@@ -508,7 +517,7 @@ function App() {
   }
 
   // =========================================================
-  // FETCH REPORTS - DAY 17
+  // FETCH REPORTS
   // =========================================================
 
   async function fetchReports() {
@@ -551,40 +560,28 @@ function App() {
       const salesResult = await salesResponse.json();
       const purchasesResult = await purchasesResponse.json();
 
-      if (
-        !dashboardResponse.ok ||
-        !dashboardResult.success
-      ) {
+      if (!dashboardResponse.ok || !dashboardResult.success) {
         throw new Error(
           dashboardResult.message ||
             "Failed to fetch dashboard report"
         );
       }
 
-      if (
-        !inventoryResponse.ok ||
-        !inventoryResult.success
-      ) {
+      if (!inventoryResponse.ok || !inventoryResult.success) {
         throw new Error(
           inventoryResult.message ||
             "Failed to fetch inventory report"
         );
       }
 
-      if (
-        !locationResponse.ok ||
-        !locationResult.success
-      ) {
+      if (!locationResponse.ok || !locationResult.success) {
         throw new Error(
           locationResult.message ||
             "Failed to fetch location report"
         );
       }
 
-      if (
-        !categoryResponse.ok ||
-        !categoryResult.success
-      ) {
+      if (!categoryResponse.ok || !categoryResult.success) {
         throw new Error(
           categoryResult.message ||
             "Failed to fetch category report"
@@ -598,10 +595,7 @@ function App() {
         );
       }
 
-      if (
-        !purchasesResponse.ok ||
-        !purchasesResult.success
-      ) {
+      if (!purchasesResponse.ok || !purchasesResult.success) {
         throw new Error(
           purchasesResult.message ||
             "Failed to fetch purchase report"
@@ -618,6 +612,7 @@ function App() {
       });
     } catch (error) {
       console.error("Fetch reports error:", error);
+
       setReportsError(
         error.message || "Unable to load reports"
       );
@@ -631,7 +626,9 @@ function App() {
   // =========================================================
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     async function loadAllData() {
       setDashboardLoading(true);
@@ -646,6 +643,7 @@ function App() {
         fetchPurchases(),
         fetchSales(),
         fetchInventory(),
+        fetchReports(),
       ]);
 
       setDashboardLoading(false);
@@ -655,7 +653,7 @@ function App() {
   }, [token]);
 
   // =========================================================
-  // LOAD REPORTS WHEN REPORT PAGE OPENS
+  // REFRESH REPORTS WHEN REPORT PAGE OPENS
   // =========================================================
 
   useEffect(() => {
@@ -716,10 +714,6 @@ function App() {
         throw new Error("Product name is required");
       }
 
-      if (!productForm.partNumber.trim()) {
-        throw new Error("Part number is required");
-      }
-
       if (
         productForm.mrp === "" ||
         Number(productForm.mrp) < 0
@@ -743,7 +737,7 @@ function App() {
         headers: getHeaders(true),
         body: JSON.stringify({
           name: productForm.name.trim(),
-          partNumber: productForm.partNumber.trim(),
+          partNumber: productForm.partNumber.trim() || null,
           description: productForm.description || null,
           vehicleModel: productForm.vehicleModel || null,
           mrp: Number(productForm.mrp),
@@ -769,6 +763,7 @@ function App() {
       await Promise.all([
         fetchProducts(),
         fetchInventory(),
+        fetchReports(),
       ]);
 
       closeProductForm();
@@ -777,6 +772,7 @@ function App() {
       );
     } catch (error) {
       console.error("Save product error:", error);
+
       setProductFormError(
         error.message || "Unable to create product."
       );
@@ -900,6 +896,7 @@ function App() {
         fetchPurchases(),
         fetchProducts(),
         fetchInventory(),
+        fetchReports(),
       ]);
 
       resetPurchaseForm();
@@ -908,7 +905,10 @@ function App() {
         "Purchase created successfully."
       );
     } catch (error) {
-      console.error("Save purchase error:", error);
+      console.error(
+        "Save purchase error:",
+        error
+      );
 
       setPurchaseError(
         error.message ||
@@ -955,7 +955,9 @@ function App() {
           Number(locationId)
     );
 
-    return item ? Number(item.quantity || 0) : 0;
+    return item
+      ? Number(item.quantity || 0)
+      : 0;
   }
 
   async function handleSaveSale(event) {
@@ -967,15 +969,21 @@ function App() {
 
     try {
       if (!saleForm.invoiceNumber.trim()) {
-        throw new Error("Invoice number is required.");
+        throw new Error(
+          "Invoice number is required."
+        );
       }
 
       if (!saleForm.productId) {
-        throw new Error("Please select a product.");
+        throw new Error(
+          "Please select a product."
+        );
       }
 
       if (!saleForm.locationId) {
-        throw new Error("Please select a location.");
+        throw new Error(
+          "Please select a location."
+        );
       }
 
       if (
@@ -1047,7 +1055,8 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          result.message || "Unable to create sale"
+          result.message ||
+            "Unable to create sale"
         );
       }
 
@@ -1055,6 +1064,7 @@ function App() {
         fetchSales(),
         fetchProducts(),
         fetchInventory(),
+        fetchReports(),
       ]);
 
       resetSaleForm();
@@ -1063,7 +1073,10 @@ function App() {
         "Sale created successfully."
       );
     } catch (error) {
-      console.error("Save sale error:", error);
+      console.error(
+        "Save sale error:",
+        error
+      );
 
       setSaleError(
         error.message ||
@@ -1165,7 +1178,10 @@ function App() {
         );
       }
 
-      await fetchSuppliers();
+      await Promise.all([
+        fetchSuppliers(),
+        fetchReports(),
+      ]);
 
       setShowSupplierForm(false);
       resetSupplierForm();
@@ -1176,7 +1192,10 @@ function App() {
           : "Supplier created successfully."
       );
     } catch (error) {
-      console.error("Save supplier error:", error);
+      console.error(
+        "Save supplier error:",
+        error
+      );
 
       setSupplierFormError(
         error.message ||
@@ -1331,7 +1350,10 @@ function App() {
           : "Customer created successfully."
       );
     } catch (error) {
-      console.error("Save customer error:", error);
+      console.error(
+        "Save customer error:",
+        error
+      );
 
       setCustomerFormError(
         error.message ||
@@ -1439,7 +1461,9 @@ function App() {
       [];
 
     if (!Array.isArray(inventories)) {
-      return Number(product.quantity || 0);
+      return Number(
+        product.quantity || 0
+      );
     }
 
     return inventories.reduce(
@@ -1472,39 +1496,6 @@ function App() {
     0
   );
 
-  const locationStock = locations.map(
-    (location) => {
-      const stock = products.reduce(
-        (total, product) => {
-          const inventories =
-            product.inventories ||
-            product.inventory ||
-            [];
-
-          const item = Array.isArray(inventories)
-            ? inventories.find(
-                (inventoryItem) =>
-                  Number(
-                    inventoryItem.locationId
-                  ) === Number(location.id)
-              )
-            : null;
-
-          return (
-            total +
-            Number(item?.quantity || 0)
-          );
-        },
-        0
-      );
-
-      return {
-        ...location,
-        stock,
-      };
-    }
-  );
-
   // =========================================================
   // INVENTORY FILTERING
   // =========================================================
@@ -1514,11 +1505,8 @@ function App() {
       inventorySearch.toLowerCase().trim();
 
     return inventory.filter((item) => {
-      const product =
-        item.product || {};
-
-      const location =
-        item.location || {};
+      const product = item.product || {};
+      const location = item.location || {};
 
       const matchesSearch =
         !search ||
@@ -1696,6 +1684,7 @@ function App() {
       await Promise.all([
         fetchInventory(),
         fetchProducts(),
+        fetchReports(),
       ]);
 
       closeTransferForm();
@@ -1816,6 +1805,7 @@ function App() {
       await Promise.all([
         fetchInventory(),
         fetchProducts(),
+        fetchReports(),
       ]);
 
       closeAdjustmentForm();
@@ -1839,7 +1829,7 @@ function App() {
   }
 
   // =========================================================
-  // REPORT INVENTORY FILTER
+  // REPORT FILTERING
   // =========================================================
 
   const filteredReportInventory = useMemo(() => {
@@ -1894,6 +1884,81 @@ function App() {
   ]);
 
   // =========================================================
+  // DAY 18 - CHART DATA
+  // =========================================================
+
+  const salesChartData = useMemo(() => {
+    return (reports.sales?.sales || [])
+      .slice(0, 8)
+      .reverse()
+      .map((sale) => ({
+        invoice:
+          sale.invoiceNumber ||
+          `SALE-${sale.id}`,
+        amount: Number(
+          sale.totalAmount || 0
+        ),
+      }));
+  }, [reports.sales]);
+
+  const purchaseChartData = useMemo(() => {
+    return (reports.purchases?.purchases || [])
+      .slice(0, 8)
+      .reverse()
+      .map((purchase) => ({
+        invoice:
+          purchase.invoiceNumber ||
+          `PURCHASE-${purchase.id}`,
+        amount: Number(
+          purchase.totalAmount || 0
+        ),
+      }));
+  }, [reports.purchases]);
+
+  const categoryChartData = useMemo(() => {
+    return reports.category.map(
+      (category) => ({
+        name: category.categoryName,
+        stock: Number(
+          category.totalStock || 0
+        ),
+      })
+    );
+  }, [reports.category]);
+
+  const locationChartData = useMemo(() => {
+    return reports.location.map(
+      (location) => ({
+        name: location.locationName,
+        stock: Number(
+          location.totalStock || 0
+        ),
+      })
+    );
+  }, [reports.location]);
+
+  const dashboardLowStockItems =
+    useMemo(() => {
+      return reports.inventory.filter(
+        (item) =>
+          item.status === "LOW STOCK" ||
+          item.status === "OUT OF STOCK"
+      );
+    }, [reports.inventory]);
+
+  const recentSales = useMemo(() => {
+    return (
+      reports.sales?.sales || []
+    ).slice(0, 5);
+  }, [reports.sales]);
+
+  const recentPurchases = useMemo(() => {
+    return (
+      reports.purchases?.purchases || []
+    ).slice(0, 5);
+  }, [reports.purchases]);
+
+  // =========================================================
   // LOGIN SCREEN
   // =========================================================
 
@@ -1925,7 +1990,8 @@ function App() {
                 onChange={(event) =>
                   setLoginForm({
                     ...loginForm,
-                    email: event.target.value,
+                    email:
+                      event.target.value,
                   })
                 }
                 placeholder="Enter email"
@@ -1977,37 +2043,50 @@ function App() {
   // =========================================================
 
   function DashboardPage() {
+    async function refreshDashboard() {
+      setDashboardLoading(true);
+
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchBrands(),
+        fetchLocations(),
+        fetchInventory(),
+        fetchPurchases(),
+        fetchSales(),
+        fetchReports(),
+      ]);
+
+      setDashboardLoading(false);
+    }
+
     return (
       <div>
         <div className="page-heading">
           <div>
             <h2>Dashboard</h2>
+
             <p>
-              Overview of Sri Vengamamba inventory
+              Overview of Sri Vengamamba
+              inventory
             </p>
           </div>
 
           <button
             className="secondary-button"
-            onClick={async () => {
-              setDashboardLoading(true);
-
-              await Promise.all([
-                fetchProducts(),
-                fetchCategories(),
-                fetchBrands(),
-                fetchLocations(),
-                fetchInventory(),
-              ]);
-
-              setDashboardLoading(false);
-            }}
+            onClick={refreshDashboard}
           >
             {dashboardLoading
               ? "Refreshing..."
               : "↻ Refresh"}
           </button>
         </div>
+
+        {reportsError && (
+          <div className="alert alert-error">
+            {reportsError}
+          </div>
+        )}
 
         {productFormSuccess && (
           <div className="alert alert-success">
@@ -2055,128 +2134,476 @@ function App() {
               ₹{inventoryValue.toFixed(2)}
             </strong>
           </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Locations
+            </span>
+
+            <strong>
+              {locations.length}
+            </strong>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Total Sales
+            </span>
+
+            <strong>
+              ₹
+              {Number(
+                reports.sales?.totalSales ||
+                  0
+              ).toFixed(2)}
+            </strong>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Total Purchases
+            </span>
+
+            <strong>
+              ₹
+              {Number(
+                reports.purchases
+                  ?.totalPurchases || 0
+              ).toFixed(2)}
+            </strong>
+          </div>
+
+          <div className="stat-card">
+            <span className="stat-label">
+              Sales Invoices
+            </span>
+
+            <strong>
+              {reports.sales
+                ?.totalInvoices || 0}
+            </strong>
+          </div>
         </div>
 
-        <div className="dashboard-grid">
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h3>Stock by Location</h3>
-            </div>
+        {/* =====================================================
+            DAY 18 CHARTS
+        ===================================================== */}
 
-            <div className="location-cards">
-              {locationStock.length === 0 ? (
-                <p className="empty-state">
-                  No locations found.
-                </p>
-              ) : (
-                locationStock.map((location) => (
-                  <div
-                    className="location-card"
-                    key={location.id}
-                  >
-                    <h4>
-                      {location.name}
-                    </h4>
+        <section className="dashboard-charts-grid">
+          <div className="dashboard-chart-card">
+            <h3>Sales Overview</h3>
 
-                    {location.section && (
-                      <p>
-                        Section:{" "}
-                        {location.section}
-                      </p>
-                    )}
-
-                    {location.rack && (
-                      <p>
-                        Rack: {location.rack}
-                      </p>
-                    )}
-
-                    {location.shelf && (
-                      <p>
-                        Shelf: {location.shelf}
-                      </p>
-                    )}
-
-                    <strong>
-                      {location.stock} units
-                    </strong>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h3>Low Stock Products</h3>
-            </div>
-
-            {lowStockProducts.length === 0 ? (
+            {salesChartData.length === 0 ? (
               <div className="empty-state">
-                No low-stock products.
+                No sales data available.
               </div>
             ) : (
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Stock</th>
-                      <th>Minimum</th>
-                      <th>Category</th>
-                      <th>Brand</th>
-                    </tr>
-                  </thead>
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
+                <LineChart
+                  data={salesChartData}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
 
-                  <tbody>
-                    {lowStockProducts.map(
-                      (product) => (
-                        <tr key={product.id}>
-                          <td>
-                            {product.name}
-                          </td>
+                  <XAxis
+                    dataKey="invoice"
+                  />
 
-                          <td>
-                            {getProductStock(
-                              product
-                            )}
-                          </td>
+                  <YAxis />
 
-                          <td>
-                            {product.minimumStock}
-                          </td>
+                  <Tooltip />
 
-                          <td>
-                            {product.category?.name ||
-                              "N/A"}
-                          </td>
+                  <Legend />
 
-                          <td>
-                            {product.brand?.name ||
-                              "N/A"}
-                          </td>
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    name="Sales"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="dashboard-chart-card">
+            <h3>Purchase Overview</h3>
+
+            {purchaseChartData.length ===
+            0 ? (
+              <div className="empty-state">
+                No purchase data available.
+              </div>
+            ) : (
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
+                <LineChart
+                  data={purchaseChartData}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
+
+                  <XAxis
+                    dataKey="invoice"
+                  />
+
+                  <YAxis />
+
+                  <Tooltip />
+
+                  <Legend />
+
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    name="Purchases"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="dashboard-chart-card">
+            <h3>Stock by Category</h3>
+
+            {categoryChartData.length ===
+            0 ? (
+              <div className="empty-state">
+                No category data available.
+              </div>
+            ) : (
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
+                <BarChart
+                  data={categoryChartData}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
+
+                  <XAxis dataKey="name" />
+
+                  <YAxis />
+
+                  <Tooltip />
+
+                  <Legend />
+
+                  <Bar
+                    dataKey="stock"
+                    name="Stock"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="dashboard-chart-card">
+            <h3>Stock by Location</h3>
+
+            {locationChartData.length ===
+            0 ? (
+              <div className="empty-state">
+                No location data available.
+              </div>
+            ) : (
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
+                <BarChart
+                  data={locationChartData}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
+
+                  <XAxis dataKey="name" />
+
+                  <YAxis />
+
+                  <Tooltip />
+
+                  <Legend />
+
+                  <Bar
+                    dataKey="stock"
+                    name="Stock"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
+
+        {/* =====================================================
+            LOW STOCK ALERTS
+        ===================================================== */}
+
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div>
+              <h3>
+                ⚠️ Low Stock Alerts
+              </h3>
+
+              <p>
+                Products that need attention
+              </p>
+            </div>
+          </div>
+
+          {dashboardLowStockItems.length ===
+          0 ? (
+            <div className="empty-state">
+              All products currently have
+              sufficient stock.
+            </div>
+          ) : (
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Location</th>
+                    <th>Current Stock</th>
+                    <th>Minimum Stock</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {dashboardLowStockItems.map(
+                    (item) => (
+                      <tr
+                        key={`alert-${item.id}`}
+                      >
+                        <td>
+                          <strong>
+                            {
+                              item.productName
+                            }
+                          </strong>
+                        </td>
+
+                        <td>
+                          {item.location ||
+                            "-"}
+                        </td>
+
+                        <td>
+                          {item.quantity}
+                        </td>
+
+                        <td>
+                          {
+                            item.minimumStock
+                          }
+                        </td>
+
+                        <td>
+                          <span
+                            className={
+                              item.status ===
+                              "OUT OF STOCK"
+                                ? "status-badge status-danger"
+                                : "status-badge status-warning"
+                            }
+                          >
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* =====================================================
+            RECENT SALES / PURCHASES
+        ===================================================== */}
+
+        <section className="recent-dashboard-grid">
+          <div className="recent-dashboard-card">
+            <h3>Recent Sales</h3>
+
+            {recentSales.length ===
+            0 ? (
+              <div className="empty-state">
+                No sales recorded yet.
+              </div>
+            ) : (
+              <div className="recent-list">
+                {recentSales.map((sale) => (
+                  <div
+                    className="recent-item"
+                    key={`sale-${sale.id}`}
+                  >
+                    <div>
+                      <strong>
+                        {sale.invoiceNumber ||
+                          `SALE-${sale.id}`}
+                      </strong>
+
+                      <span>
+                        {sale.customer
+                          ?.name ||
+                          "Walk-in Customer"}
+                      </span>
+                    </div>
+
+                    <strong>
+                      ₹
+                      {Number(
+                        sale.totalAmount ||
+                          0
+                      ).toFixed(2)}
+                    </strong>
+                  </div>
+                ))}
               </div>
             )}
-          </section>
-        </div>
+          </div>
+
+          <div className="recent-dashboard-card">
+            <h3>
+              Recent Purchases
+            </h3>
+
+            {recentPurchases.length ===
+            0 ? (
+              <div className="empty-state">
+                No purchases recorded yet.
+              </div>
+            ) : (
+              <div className="recent-list">
+                {recentPurchases.map(
+                  (purchase) => (
+                    <div
+                      className="recent-item"
+                      key={`purchase-${purchase.id}`}
+                    >
+                      <div>
+                        <strong>
+                          {purchase.invoiceNumber ||
+                            `PURCHASE-${purchase.id}`}
+                        </strong>
+
+                        <span>
+                          {purchase
+                            .supplier
+                            ?.name ||
+                            "Unknown Supplier"}
+                        </span>
+                      </div>
+
+                      <strong>
+                        ₹
+                        {Number(
+                          purchase.totalAmount ||
+                            0
+                        ).toFixed(2)}
+                      </strong>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* =====================================================
+            LOCATION CARDS
+        ===================================================== */}
+
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div>
+              <h3>
+                Stock by Location
+              </h3>
+            </div>
+          </div>
+
+          <div className="location-cards">
+            {reports.location.length ===
+            0 ? (
+              <div className="empty-state">
+                No locations found.
+              </div>
+            ) : (
+              reports.location.map(
+                (location) => (
+                  <div
+                    className="location-card"
+                    key={location.locationId}
+                  >
+                    <h4>
+                      {
+                        location.locationName
+                      }
+                    </h4>
+
+                    <p>
+                      Rack:{" "}
+                      {location.rack || "-"}
+                    </p>
+
+                    <p>
+                      Shelf:{" "}
+                      {location.shelf || "-"}
+                    </p>
+
+                    <p>
+                      Section:{" "}
+                      {location.section ||
+                        "-"}
+                    </p>
+
+                    <strong>
+                      {location.totalStock}{" "}
+                      units
+                    </strong>
+                  </div>
+                )
+              )
+            )}
+          </div>
+        </section>
+
+        {/* =====================================================
+            PRODUCTS
+        ===================================================== */}
 
         <section className="dashboard-section">
           <div className="section-header">
             <div>
               <h3>Products</h3>
+
               <p>
-                Search and filter your products
+                Search and filter your
+                products
               </p>
             </div>
 
             <button
               className="primary-button"
-              onClick={handleAddProduct}
+              onClick={
+                handleAddProduct
+              }
             >
               + Add Product
             </button>
@@ -2195,7 +2622,9 @@ function App() {
             />
 
             <select
-              value={productCategoryFilter}
+              value={
+                productCategoryFilter
+              }
               onChange={(event) =>
                 setProductCategoryFilter(
                   event.target.value
@@ -2206,14 +2635,16 @@ function App() {
                 All Categories
               </option>
 
-              {categories.map((category) => (
-                <option
-                  key={category.id}
-                  value={category.id}
-                >
-                  {category.name}
-                </option>
-              ))}
+              {categories.map(
+                (category) => (
+                  <option
+                    key={category.id}
+                    value={category.id}
+                  >
+                    {category.name}
+                  </option>
+                )
+              )}
             </select>
 
             <select
@@ -2255,7 +2686,8 @@ function App() {
               </thead>
 
               <tbody>
-                {filteredProducts.length === 0 ? (
+                {filteredProducts.length ===
+                0 ? (
                   <tr>
                     <td
                       colSpan="8"
@@ -2267,7 +2699,9 @@ function App() {
                 ) : (
                   filteredProducts.map(
                     (product) => (
-                      <tr key={product.id}>
+                      <tr
+                        key={product.id}
+                      >
                         <td>
                           <strong>
                             {product.name}
@@ -2285,19 +2719,21 @@ function App() {
                         </td>
 
                         <td>
-                          {product.category?.name ||
-                            "N/A"}
+                          {product
+                            .category
+                            ?.name || "N/A"}
                         </td>
 
                         <td>
-                          {product.brand?.name ||
-                            "N/A"}
+                          {product.brand
+                            ?.name || "N/A"}
                         </td>
 
                         <td>
                           ₹
                           {Number(
-                            product.mrp || 0
+                            product.mrp ||
+                              0
                           ).toFixed(2)}
                         </td>
 
@@ -2310,9 +2746,11 @@ function App() {
                         </td>
 
                         <td>
-                          {getProductStock(
-                            product
-                          )}
+                          {
+                            getProductStock(
+                              product
+                            )
+                          }
                         </td>
                       </tr>
                     )
@@ -2323,32 +2761,30 @@ function App() {
           </div>
         </section>
 
+        {/* =====================================================
+            PRODUCT FORM
+        ===================================================== */}
+
         {showProductForm && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <div className="modal-header">
-                <div>
-                  <h3>Add Product</h3>
-                  <p>
-                    Enter product information
-                  </p>
-                </div>
+              <h3>Add Product</h3>
 
-                <button
-                  className="close-button"
-                  onClick={closeProductForm}
-                >
-                  ×
-                </button>
-              </div>
+              {productFormError && (
+                <div className="alert alert-error">
+                  {productFormError}
+                </div>
+              )}
 
               <form
-                onSubmit={handleSaveProduct}
+                onSubmit={
+                  handleSaveProduct
+                }
               >
                 <div className="form-grid">
                   <div className="form-group">
                     <label>
-                      Product Name *
+                      Product Name
                     </label>
 
                     <input
@@ -2365,7 +2801,7 @@ function App() {
 
                   <div className="form-group">
                     <label>
-                      Part Number *
+                      Part Number
                     </label>
 
                     <input
@@ -2376,7 +2812,6 @@ function App() {
                       onChange={
                         handleProductFormChange
                       }
-                      required
                     />
                   </div>
 
@@ -2398,7 +2833,63 @@ function App() {
 
                   <div className="form-group">
                     <label>
-                      Category *
+                      MRP
+                    </label>
+
+                    <input
+                      type="number"
+                      name="mrp"
+                      value={
+                        productForm.mrp
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      min="0"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Selling Price
+                    </label>
+
+                    <input
+                      type="number"
+                      name="sellingPrice"
+                      value={
+                        productForm.sellingPrice
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      min="0"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Minimum Stock
+                    </label>
+
+                    <input
+                      type="number"
+                      name="minimumStock"
+                      value={
+                        productForm.minimumStock
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Category
                     </label>
 
                     <select
@@ -2412,7 +2903,7 @@ function App() {
                       required
                     >
                       <option value="">
-                        Select category
+                        Select Category
                       </option>
 
                       {categories.map(
@@ -2425,7 +2916,9 @@ function App() {
                               category.id
                             }
                           >
-                            {category.name}
+                            {
+                              category.name
+                            }
                           </option>
                         )
                       )}
@@ -2433,7 +2926,9 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>Brand</label>
+                    <label>
+                      Brand
+                    </label>
 
                     <select
                       name="brandId"
@@ -2445,99 +2940,42 @@ function App() {
                       }
                     >
                       <option value="">
-                        Select brand
+                        Select Brand
                       </option>
 
-                      {brands.map((brand) => (
-                        <option
-                          key={brand.id}
-                          value={brand.id}
-                        >
-                          {brand.name}
-                        </option>
-                      ))}
+                      {brands.map(
+                        (brand) => (
+                          <option
+                            key={
+                              brand.id
+                            }
+                            value={
+                              brand.id
+                            }
+                          >
+                            {brand.name}
+                          </option>
+                        )
+                      )}
                     </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>MRP *</label>
-
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="mrp"
-                      value={
-                        productForm.mrp
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>
-                      Selling Price *
-                    </label>
-
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="sellingPrice"
-                      value={
-                        productForm.sellingPrice
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>
-                      Minimum Stock
-                    </label>
-
-                    <input
-                      type="number"
-                      min="0"
-                      name="minimumStock"
-                      value={
-                        productForm.minimumStock
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group full-span">
-                    <label>
-                      Description
-                    </label>
-
-                    <textarea
-                      name="description"
-                      value={
-                        productForm.description
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      rows="3"
-                    />
                   </div>
                 </div>
 
-                {productFormError && (
-                  <div className="alert alert-error">
-                    {productFormError}
-                  </div>
-                )}
+                <div className="form-group">
+                  <label>
+                    Description
+                  </label>
+
+                  <textarea
+                    name="description"
+                    value={
+                      productForm.description
+                    }
+                    onChange={
+                      handleProductFormChange
+                    }
+                  />
+                </div>
 
                 <div className="modal-actions">
                   <button
@@ -2553,7 +2991,9 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingProduct}
+                    disabled={
+                      savingProduct
+                    }
                   >
                     {savingProduct
                       ? "Saving..."
@@ -2569,7 +3009,7 @@ function App() {
   }
 
   // =========================================================
-  // PURCHASES PAGE
+  // PURCHASE PAGE
   // =========================================================
 
   function PurchasesPage() {
@@ -2577,25 +3017,13 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>Purchase Management</h2>
+            <h2>Purchases</h2>
+
             <p>
-              Record purchases and increase inventory
+              Record stock purchases
             </p>
           </div>
-
-          <button
-            className="secondary-button"
-            onClick={fetchPurchases}
-          >
-            ↻ Refresh
-          </button>
         </div>
-
-        {purchaseSuccess && (
-          <div className="alert alert-success">
-            {purchaseSuccess}
-          </div>
-        )}
 
         {purchaseError && (
           <div className="alert alert-error">
@@ -2603,23 +3031,23 @@ function App() {
           </div>
         )}
 
-        <section className="transaction-card">
-          <div className="section-header">
-            <div>
-              <h3>Create Purchase</h3>
-              <p>
-                Purchased stock will be added to
-                the selected location.
-              </p>
-            </div>
+        {purchaseSuccess && (
+          <div className="alert alert-success">
+            {purchaseSuccess}
           </div>
+        )}
+
+        <section className="dashboard-section">
+          <h3>Create Purchase</h3>
 
           <form
-            onSubmit={handleSavePurchase}
+            onSubmit={
+              handleSavePurchase
+            }
           >
             <div className="form-grid">
               <div className="form-group">
-                <label>Supplier *</label>
+                <label>Supplier</label>
 
                 <select
                   name="supplierId"
@@ -2632,7 +3060,7 @@ function App() {
                   required
                 >
                   <option value="">
-                    Select supplier
+                    Select Supplier
                   </option>
 
                   {suppliers.map(
@@ -2650,7 +3078,7 @@ function App() {
 
               <div className="form-group">
                 <label>
-                  Invoice Number *
+                  Invoice Number
                 </label>
 
                 <input
@@ -2661,13 +3089,14 @@ function App() {
                   onChange={
                     handlePurchaseFormChange
                   }
-                  placeholder="INV-001"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Purchase Date</label>
+                <label>
+                  Purchase Date
+                </label>
 
                 <input
                   type="date"
@@ -2682,7 +3111,7 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>Product *</label>
+                <label>Product</label>
 
                 <select
                   name="productId"
@@ -2695,22 +3124,24 @@ function App() {
                   required
                 >
                   <option value="">
-                    Select product
+                    Select Product
                   </option>
 
-                  {products.map((product) => (
-                    <option
-                      key={product.id}
-                      value={product.id}
-                    >
-                      {product.name}
-                    </option>
-                  ))}
+                  {products.map(
+                    (product) => (
+                      <option
+                        key={product.id}
+                        value={product.id}
+                      >
+                        {product.name}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Location *</label>
+                <label>Location</label>
 
                 <select
                   name="locationId"
@@ -2723,7 +3154,7 @@ function App() {
                   required
                 >
                   <option value="">
-                    Select location
+                    Select Location
                   </option>
 
                   {locations.map(
@@ -2740,11 +3171,10 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>Quantity *</label>
+                <label>Quantity</label>
 
                 <input
                   type="number"
-                  min="1"
                   name="quantity"
                   value={
                     purchaseForm.quantity
@@ -2752,19 +3182,18 @@ function App() {
                   onChange={
                     handlePurchaseFormChange
                   }
+                  min="1"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label>
-                  Purchase Price *
+                  Purchase Price
                 </label>
 
                 <input
                   type="number"
-                  min="0"
-                  step="0.01"
                   name="purchasePrice"
                   value={
                     purchaseForm.purchasePrice
@@ -2772,51 +3201,30 @@ function App() {
                   onChange={
                     handlePurchaseFormChange
                   }
+                  min="0"
                   required
                 />
               </div>
             </div>
 
-            <div className="transaction-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={
-                  resetPurchaseForm
-                }
-              >
-                Clear
-              </button>
-
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={savingPurchase}
-              >
-                {savingPurchase
-                  ? "Saving..."
-                  : "Create Purchase"}
-              </button>
-            </div>
+            <button
+              className="primary-button"
+              disabled={savingPurchase}
+            >
+              {savingPurchase
+                ? "Saving..."
+                : "Create Purchase"}
+            </button>
           </form>
         </section>
 
-        <section className="history-section">
-          <div className="section-header">
-            <div>
-              <h3>Purchase History</h3>
-              <p>
-                {purchases.length} purchase
-                record(s)
-              </p>
-            </div>
-          </div>
+        <section className="dashboard-section">
+          <h3>Purchase History</h3>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Invoice</th>
                   <th>Supplier</th>
                   <th>Date</th>
@@ -2825,44 +3233,36 @@ function App() {
               </thead>
 
               <tbody>
-                {purchases.length === 0 ? (
+                {purchases.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="4"
                       className="empty-table"
                     >
-                      No purchase records
-                      found.
+                      No purchases found.
                     </td>
                   </tr>
                 ) : (
                   purchases.map(
                     (purchase) => (
-                      <tr key={purchase.id}>
-                        <td>
-                          {purchase.id}
-                        </td>
-
+                      <tr
+                        key={purchase.id}
+                      >
                         <td>
                           {purchase.invoiceNumber ||
-                            "-"}
+                            `PURCHASE-${purchase.id}`}
                         </td>
 
                         <td>
                           {purchase.supplier
-                            ?.name ||
-                            purchase.supplierId ||
-                            "-"}
+                            ?.name || "-"}
                         </td>
 
                         <td>
                           {purchase.purchaseDate
                             ? new Date(
                                 purchase.purchaseDate
-                              ).toLocaleDateString()
-                            : purchase.createdAt
-                            ? new Date(
-                                purchase.createdAt
                               ).toLocaleDateString()
                             : "-"}
                         </td>
@@ -2891,39 +3291,17 @@ function App() {
   // =========================================================
 
   function SalesPage() {
-    const selectedStock =
-      saleForm.productId &&
-      saleForm.locationId
-        ? getInventoryQuantity(
-            saleForm.productId,
-            saleForm.locationId
-          )
-        : null;
-
     return (
       <div>
         <div className="page-heading">
           <div>
-            <h2>Sales Management</h2>
+            <h2>Sales</h2>
+
             <p>
-              Record sales and automatically
-              reduce inventory
+              Record product sales
             </p>
           </div>
-
-          <button
-            className="secondary-button"
-            onClick={fetchSales}
-          >
-            ↻ Refresh
-          </button>
         </div>
-
-        {saleSuccess && (
-          <div className="alert alert-success">
-            {saleSuccess}
-          </div>
-        )}
 
         {saleError && (
           <div className="alert alert-error">
@@ -2931,26 +3309,27 @@ function App() {
           </div>
         )}
 
-        <section className="transaction-card">
-          <div className="section-header">
-            <div>
-              <h3>Create Sale</h3>
-              <p>
-                Stock will automatically be
-                reduced from the selected
-                location.
-              </p>
-            </div>
+        {saleSuccess && (
+          <div className="alert alert-success">
+            {saleSuccess}
           </div>
+        )}
 
-          <form onSubmit={handleSaveSale}>
+        <section className="dashboard-section">
+          <h3>Create Sale</h3>
+
+          <form
+            onSubmit={handleSaveSale}
+          >
             <div className="form-grid">
               <div className="form-group">
                 <label>Customer</label>
 
                 <select
                   name="customerId"
-                  value={saleForm.customerId}
+                  value={
+                    saleForm.customerId
+                  }
                   onChange={
                     handleSaleFormChange
                   }
@@ -2974,7 +3353,7 @@ function App() {
 
               <div className="form-group">
                 <label>
-                  Invoice Number *
+                  Invoice Number
                 </label>
 
                 <input
@@ -2985,13 +3364,12 @@ function App() {
                   onChange={
                     handleSaleFormChange
                   }
-                  placeholder="SALE-001"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Product *</label>
+                <label>Product</label>
 
                 <select
                   name="productId"
@@ -3004,22 +3382,24 @@ function App() {
                   required
                 >
                   <option value="">
-                    Select product
+                    Select Product
                   </option>
 
-                  {products.map((product) => (
-                    <option
-                      key={product.id}
-                      value={product.id}
-                    >
-                      {product.name}
-                    </option>
-                  ))}
+                  {products.map(
+                    (product) => (
+                      <option
+                        key={product.id}
+                        value={product.id}
+                      >
+                        {product.name}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Location *</label>
+                <label>Location</label>
 
                 <select
                   name="locationId"
@@ -3032,7 +3412,7 @@ function App() {
                   required
                 >
                   <option value="">
-                    Select location
+                    Select Location
                   </option>
 
                   {locations.map(
@@ -3049,11 +3429,10 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>Quantity *</label>
+                <label>Quantity</label>
 
                 <input
                   type="number"
-                  min="1"
                   name="quantity"
                   value={
                     saleForm.quantity
@@ -3061,28 +3440,18 @@ function App() {
                   onChange={
                     handleSaleFormChange
                   }
+                  min="1"
                   required
                 />
-
-                {selectedStock !== null && (
-                  <small>
-                    Available stock:{" "}
-                    <strong>
-                      {selectedStock}
-                    </strong>
-                  </small>
-                )}
               </div>
 
               <div className="form-group">
                 <label>
-                  Selling Price *
+                  Selling Price
                 </label>
 
                 <input
                   type="number"
-                  min="0"
-                  step="0.01"
                   name="sellingPrice"
                   value={
                     saleForm.sellingPrice
@@ -3090,48 +3459,30 @@ function App() {
                   onChange={
                     handleSaleFormChange
                   }
+                  min="0"
                   required
                 />
               </div>
             </div>
 
-            <div className="transaction-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={resetSaleForm}
-              >
-                Clear
-              </button>
-
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={savingSale}
-              >
-                {savingSale
-                  ? "Saving..."
-                  : "Create Sale"}
-              </button>
-            </div>
+            <button
+              className="primary-button"
+              disabled={savingSale}
+            >
+              {savingSale
+                ? "Saving..."
+                : "Create Sale"}
+            </button>
           </form>
         </section>
 
-        <section className="history-section">
-          <div className="section-header">
-            <div>
-              <h3>Sales History</h3>
-              <p>
-                {sales.length} sales record(s)
-              </p>
-            </div>
-          </div>
+        <section className="dashboard-section">
+          <h3>Sales History</h3>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Invoice</th>
                   <th>Customer</th>
                   <th>Date</th>
@@ -3143,25 +3494,26 @@ function App() {
                 {sales.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="4"
                       className="empty-table"
                     >
-                      No sales records found.
+                      No sales found.
                     </td>
                   </tr>
                 ) : (
                   sales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td>{sale.id}</td>
-
+                    <tr
+                      key={sale.id}
+                    >
                       <td>
                         {sale.invoiceNumber ||
-                          "-"}
+                          `SALE-${sale.id}`}
                       </td>
 
                       <td>
-                        {sale.customer?.name ||
-                          "Walk-in"}
+                        {sale.customer
+                          ?.name ||
+                          "Walk-in Customer"}
                       </td>
 
                       <td>
@@ -3199,35 +3551,22 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>Supplier Management</h2>
+            <h2>Suppliers</h2>
+
             <p>
-              Manage suppliers for your
-              automobile shop
+              Manage suppliers
             </p>
           </div>
 
-          <div className="heading-actions">
-            <button
-              className="secondary-button"
-              onClick={fetchSuppliers}
-            >
-              ↻ Refresh
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={handleAddSupplier}
-            >
-              + Add Supplier
-            </button>
-          </div>
+          <button
+            className="primary-button"
+            onClick={
+              handleAddSupplier
+            }
+          >
+            + Add Supplier
+          </button>
         </div>
-
-        {supplierFormSuccess && (
-          <div className="alert alert-success">
-            {supplierFormSuccess}
-          </div>
-        )}
 
         {supplierFormError && (
           <div className="alert alert-error">
@@ -3235,36 +3574,31 @@ function App() {
           </div>
         )}
 
-        <section className="management-card">
-          <div className="section-header">
-            <div>
-              <h3>Suppliers</h3>
-              <p>
-                {suppliers.length} supplier(s)
-                registered
-              </p>
-            </div>
+        {supplierFormSuccess && (
+          <div className="alert alert-success">
+            {supplierFormSuccess}
           </div>
+        )}
 
+        <section className="dashboard-section">
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Name</th>
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Address</th>
-                  <th>Purchases</th>
                   <th>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {suppliers.length === 0 ? (
+                {suppliers.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan="5"
                       className="empty-table"
                     >
                       No suppliers found.
@@ -3273,15 +3607,11 @@ function App() {
                 ) : (
                   suppliers.map(
                     (supplier) => (
-                      <tr key={supplier.id}>
+                      <tr
+                        key={supplier.id}
+                      >
                         <td>
-                          {supplier.id}
-                        </td>
-
-                        <td>
-                          <strong>
-                            {supplier.name}
-                          </strong>
+                          {supplier.name}
                         </td>
 
                         <td>
@@ -3300,39 +3630,27 @@ function App() {
                         </td>
 
                         <td>
-                          {Array.isArray(
-                            supplier.purchases
-                          )
-                            ? supplier
-                                .purchases
-                                .length
-                            : 0}
-                        </td>
+                          <button
+                            className="secondary-button"
+                            onClick={() =>
+                              handleEditSupplier(
+                                supplier
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
 
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="edit-button"
-                              onClick={() =>
-                                handleEditSupplier(
-                                  supplier
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              className="delete-button"
-                              onClick={() =>
-                                handleDeleteSupplier(
-                                  supplier.id
-                                )
-                              }
-                            >
-                              Delete
-                            </button>
-                          </div>
+                          <button
+                            className="danger-button"
+                            onClick={() =>
+                              handleDeleteSupplier(
+                                supplier.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     )
@@ -3346,98 +3664,80 @@ function App() {
         {showSupplierForm && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <div className="modal-header">
-                <div>
-                  <h3>
-                    {editingSupplierId !== null
-                      ? "Edit Supplier"
-                      : "Add Supplier"}
-                  </h3>
-                </div>
+              <h3>
+                {editingSupplierId
+                  ? "Edit Supplier"
+                  : "Add Supplier"}
+              </h3>
 
-                <button
-                  className="close-button"
-                  onClick={
-                    handleCancelSupplierForm
-                  }
-                >
-                  ×
-                </button>
-              </div>
+              {supplierFormError && (
+                <div className="alert alert-error">
+                  {supplierFormError}
+                </div>
+              )}
 
               <form
                 onSubmit={
                   handleSaveSupplier
                 }
               >
-                <div className="form-grid">
-                  <div className="form-group full-span">
-                    <label>
-                      Supplier Name *
-                    </label>
+                <div className="form-group">
+                  <label>Name</label>
 
-                    <input
-                      name="name"
-                      value={
-                        supplierForm.name
-                      }
-                      onChange={
-                        handleSupplierFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Phone</label>
-
-                    <input
-                      name="phone"
-                      value={
-                        supplierForm.phone
-                      }
-                      onChange={
-                        handleSupplierFormChange
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Email</label>
-
-                    <input
-                      type="email"
-                      name="email"
-                      value={
-                        supplierForm.email
-                      }
-                      onChange={
-                        handleSupplierFormChange
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group full-span">
-                    <label>Address</label>
-
-                    <textarea
-                      name="address"
-                      value={
-                        supplierForm.address
-                      }
-                      onChange={
-                        handleSupplierFormChange
-                      }
-                      rows="3"
-                    />
-                  </div>
+                  <input
+                    name="name"
+                    value={
+                      supplierForm.name
+                    }
+                    onChange={
+                      handleSupplierFormChange
+                    }
+                    required
+                  />
                 </div>
 
-                {supplierFormError && (
-                  <div className="alert alert-error">
-                    {supplierFormError}
-                  </div>
-                )}
+                <div className="form-group">
+                  <label>Phone</label>
+
+                  <input
+                    name="phone"
+                    value={
+                      supplierForm.phone
+                    }
+                    onChange={
+                      handleSupplierFormChange
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+
+                  <input
+                    type="email"
+                    name="email"
+                    value={
+                      supplierForm.email
+                    }
+                    onChange={
+                      handleSupplierFormChange
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Address</label>
+
+                  <textarea
+                    name="address"
+                    value={
+                      supplierForm.address
+                    }
+                    onChange={
+                      handleSupplierFormChange
+                    }
+                  />
+                </div>
 
                 <div className="modal-actions">
                   <button
@@ -3453,13 +3753,12 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingSupplier}
+                    disabled={
+                      savingSupplier
+                    }
                   >
                     {savingSupplier
                       ? "Saving..."
-                      : editingSupplierId !==
-                        null
-                      ? "Update Supplier"
                       : "Save Supplier"}
                   </button>
                 </div>
@@ -3480,35 +3779,22 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>Customer Management</h2>
+            <h2>Customers</h2>
+
             <p>
-              Manage customers for your
-              automobile shop
+              Manage customers
             </p>
           </div>
 
-          <div className="heading-actions">
-            <button
-              className="secondary-button"
-              onClick={fetchCustomers}
-            >
-              ↻ Refresh
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={handleAddCustomer}
-            >
-              + Add Customer
-            </button>
-          </div>
+          <button
+            className="primary-button"
+            onClick={
+              handleAddCustomer
+            }
+          >
+            + Add Customer
+          </button>
         </div>
-
-        {customerFormSuccess && (
-          <div className="alert alert-success">
-            {customerFormSuccess}
-          </div>
-        )}
 
         {customerFormError && (
           <div className="alert alert-error">
@@ -3516,36 +3802,31 @@ function App() {
           </div>
         )}
 
-        <section className="management-card">
-          <div className="section-header">
-            <div>
-              <h3>Customers</h3>
-              <p>
-                {customers.length} customer(s)
-                registered
-              </p>
-            </div>
+        {customerFormSuccess && (
+          <div className="alert alert-success">
+            {customerFormSuccess}
           </div>
+        )}
 
+        <section className="dashboard-section">
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Name</th>
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Address</th>
-                  <th>Sales</th>
                   <th>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {customers.length === 0 ? (
+                {customers.length ===
+                0 ? (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan="5"
                       className="empty-table"
                     >
                       No customers found.
@@ -3554,15 +3835,11 @@ function App() {
                 ) : (
                   customers.map(
                     (customer) => (
-                      <tr key={customer.id}>
+                      <tr
+                        key={customer.id}
+                      >
                         <td>
-                          {customer.id}
-                        </td>
-
-                        <td>
-                          <strong>
-                            {customer.name}
-                          </strong>
+                          {customer.name}
                         </td>
 
                         <td>
@@ -3581,38 +3858,27 @@ function App() {
                         </td>
 
                         <td>
-                          {Array.isArray(
-                            customer.sales
-                          )
-                            ? customer.sales
-                                .length
-                            : 0}
-                        </td>
+                          <button
+                            className="secondary-button"
+                            onClick={() =>
+                              handleEditCustomer(
+                                customer
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
 
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="edit-button"
-                              onClick={() =>
-                                handleEditCustomer(
-                                  customer
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              className="delete-button"
-                              onClick={() =>
-                                handleDeleteCustomer(
-                                  customer.id
-                                )
-                              }
-                            >
-                              Delete
-                            </button>
-                          </div>
+                          <button
+                            className="danger-button"
+                            onClick={() =>
+                              handleDeleteCustomer(
+                                customer.id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     )
@@ -3626,98 +3892,80 @@ function App() {
         {showCustomerForm && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <div className="modal-header">
-                <div>
-                  <h3>
-                    {editingCustomerId !== null
-                      ? "Edit Customer"
-                      : "Add Customer"}
-                  </h3>
-                </div>
+              <h3>
+                {editingCustomerId
+                  ? "Edit Customer"
+                  : "Add Customer"}
+              </h3>
 
-                <button
-                  className="close-button"
-                  onClick={
-                    handleCancelCustomerForm
-                  }
-                >
-                  ×
-                </button>
-              </div>
+              {customerFormError && (
+                <div className="alert alert-error">
+                  {customerFormError}
+                </div>
+              )}
 
               <form
                 onSubmit={
                   handleSaveCustomer
                 }
               >
-                <div className="form-grid">
-                  <div className="form-group full-span">
-                    <label>
-                      Customer Name *
-                    </label>
+                <div className="form-group">
+                  <label>Name</label>
 
-                    <input
-                      name="name"
-                      value={
-                        customerForm.name
-                      }
-                      onChange={
-                        handleCustomerFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Phone</label>
-
-                    <input
-                      name="phone"
-                      value={
-                        customerForm.phone
-                      }
-                      onChange={
-                        handleCustomerFormChange
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Email</label>
-
-                    <input
-                      type="email"
-                      name="email"
-                      value={
-                        customerForm.email
-                      }
-                      onChange={
-                        handleCustomerFormChange
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group full-span">
-                    <label>Address</label>
-
-                    <textarea
-                      name="address"
-                      value={
-                        customerForm.address
-                      }
-                      onChange={
-                        handleCustomerFormChange
-                      }
-                      rows="3"
-                    />
-                  </div>
+                  <input
+                    name="name"
+                    value={
+                      customerForm.name
+                    }
+                    onChange={
+                      handleCustomerFormChange
+                    }
+                    required
+                  />
                 </div>
 
-                {customerFormError && (
-                  <div className="alert alert-error">
-                    {customerFormError}
-                  </div>
-                )}
+                <div className="form-group">
+                  <label>Phone</label>
+
+                  <input
+                    name="phone"
+                    value={
+                      customerForm.phone
+                    }
+                    onChange={
+                      handleCustomerFormChange
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+
+                  <input
+                    type="email"
+                    name="email"
+                    value={
+                      customerForm.email
+                    }
+                    onChange={
+                      handleCustomerFormChange
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Address</label>
+
+                  <textarea
+                    name="address"
+                    value={
+                      customerForm.address
+                    }
+                    onChange={
+                      handleCustomerFormChange
+                    }
+                  />
+                </div>
 
                 <div className="modal-actions">
                   <button
@@ -3733,13 +3981,12 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={savingCustomer}
+                    disabled={
+                      savingCustomer
+                    }
                   >
                     {savingCustomer
                       ? "Saving..."
-                      : editingCustomerId !==
-                        null
-                      ? "Update Customer"
                       : "Save Customer"}
                   </button>
                 </div>
@@ -3752,7 +3999,7 @@ function App() {
   }
 
   // =========================================================
-  // INVENTORY PAGE - DAY 16
+  // INVENTORY PAGE
   // =========================================================
 
   function InventoryPage() {
@@ -3760,18 +4007,25 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>Inventory Control</h2>
+            <h2>
+              Inventory Control
+            </h2>
+
             <p>
-              Search, monitor, transfer and
-              adjust stock
+              Search, monitor, transfer
+              and adjust stock
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={fetchInventory}
-              disabled={inventoryLoading}
+              onClick={
+                fetchInventory
+              }
+              disabled={
+                inventoryLoading
+              }
             >
               {inventoryLoading
                 ? "Refreshing..."
@@ -3780,14 +4034,18 @@ function App() {
 
             <button
               className="primary-button"
-              onClick={openTransferForm}
+              onClick={
+                openTransferForm
+              }
             >
               ⇄ Transfer Stock
             </button>
 
             <button
               className="primary-button"
-              onClick={openAdjustmentForm}
+              onClick={
+                openAdjustmentForm
+              }
             >
               ± Adjust Stock
             </button>
@@ -3796,7 +4054,9 @@ function App() {
 
         {inventoryActionSuccess && (
           <div className="alert alert-success">
-            {inventoryActionSuccess}
+            {
+              inventoryActionSuccess
+            }
           </div>
         )}
 
@@ -3818,19 +4078,13 @@ function App() {
             <strong>
               {inventoryTotalStock}
             </strong>
-            <small>
-              Units across all locations
-            </small>
           </div>
 
           <div className="inventory-summary-card">
             <span>Low Stock Records</span>
-            <strong className="inventory-danger">
+            <strong>
               {inventoryLowStockCount}
             </strong>
-            <small>
-              At or below minimum stock
-            </small>
           </div>
 
           <div className="inventory-summary-card">
@@ -3838,120 +4092,69 @@ function App() {
             <strong>
               {inventoryLocationsUsed}
             </strong>
-            <small>
-              Locations with inventory
-            </small>
           </div>
 
           <div className="inventory-summary-card">
-            <span>Displayed Records</span>
+            <span>Inventory Records</span>
             <strong>
-              {filteredInventory.length}
+              {inventory.length}
             </strong>
-            <small>
-              After filters
-            </small>
           </div>
         </div>
 
-        <section className="inventory-filter-card">
-          <div className="section-header">
-            <div>
-              <h3>
-                Search & Filter Inventory
-              </h3>
-            </div>
-          </div>
+        <section className="dashboard-section">
+          <div className="filter-bar">
+            <input
+              value={inventorySearch}
+              onChange={(event) =>
+                setInventorySearch(
+                  event.target.value
+                )
+              }
+              placeholder="Search product, part number, vehicle or location..."
+            />
 
-          <div className="inventory-filter-grid">
-            <div className="form-group">
-              <label>Search</label>
-
-              <input
-                type="text"
-                value={inventorySearch}
-                onChange={(event) =>
-                  setInventorySearch(
-                    event.target.value
-                  )
-                }
-                placeholder="Product, part number, vehicle, location..."
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Location</label>
-
-              <select
-                value={
-                  inventoryLocationFilter
-                }
-                onChange={(event) =>
-                  setInventoryLocationFilter(
-                    event.target.value
-                  )
-                }
-              >
-                <option value="">
-                  All Locations
-                </option>
-
-                {locations.map(
-                  (location) => (
-                    <option
-                      key={location.id}
-                      value={location.id}
-                    >
-                      {location.name}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div className="inventory-checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={
-                    inventoryLowStockOnly
-                  }
-                  onChange={(event) =>
-                    setInventoryLowStockOnly(
-                      event.target.checked
-                    )
-                  }
-                />
-
-                <span>
-                  Low Stock Only
-                </span>
-              </label>
-            </div>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setInventorySearch("");
-                setInventoryLocationFilter("");
-                setInventoryLowStockOnly(false);
-              }}
+            <select
+              value={
+                inventoryLocationFilter
+              }
+              onChange={(event) =>
+                setInventoryLocationFilter(
+                  event.target.value
+                )
+              }
             >
-              Clear Filters
-            </button>
-          </div>
-        </section>
+              <option value="">
+                All Locations
+              </option>
 
-        <section className="management-card">
-          <div className="section-header">
-            <div>
-              <h3>Current Stock</h3>
-              <p>
-                {filteredInventory.length}{" "}
-                inventory record(s)
-              </p>
-            </div>
+              {locations.map(
+                (location) => (
+                  <option
+                    key={location.id}
+                    value={location.id}
+                  >
+                    {location.name}
+                  </option>
+                )
+              )}
+            </select>
+
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={
+                  inventoryLowStockOnly
+                }
+                onChange={(event) =>
+                  setInventoryLowStockOnly(
+                    event.target.checked
+                  )
+                }
+              />
+
+              Low Stock Only
+            </label>
           </div>
 
           <div className="table-container">
@@ -3960,12 +4163,11 @@ function App() {
                 <tr>
                   <th>Product</th>
                   <th>Part Number</th>
-                  <th>Category</th>
                   <th>Location</th>
                   <th>Rack</th>
                   <th>Shelf</th>
                   <th>Section</th>
-                  <th>Stock</th>
+                  <th>Quantity</th>
                   <th>Minimum</th>
                   <th>Status</th>
                 </tr>
@@ -3976,7 +4178,7 @@ function App() {
                 0 ? (
                   <tr>
                     <td
-                      colSpan="10"
+                      colSpan="9"
                       className="empty-table"
                     >
                       No inventory records
@@ -3998,12 +4200,18 @@ function App() {
                             0
                         );
 
-                      const isLow =
-                        quantity <=
-                        minimum;
+                      const status =
+                        quantity === 0
+                          ? "OUT OF STOCK"
+                          : quantity <=
+                            minimum
+                          ? "LOW STOCK"
+                          : "NORMAL";
 
                       return (
-                        <tr key={item.id}>
+                        <tr
+                          key={item.id}
+                        >
                           <td>
                             <strong>
                               {
@@ -4014,52 +4222,32 @@ function App() {
                           </td>
 
                           <td>
-                            {
-                              item.product
-                                ?.partNumber ||
-                              "-"
-                            }
-                          </td>
-
-                          <td>
-                            {
-                              item.product
-                                ?.category
-                                ?.name ||
-                              "-"
-                            }
+                            {item.product
+                              ?.partNumber ||
+                              "-"}
                           </td>
 
                           <td>
                             {
                               item.location
-                                ?.name ||
-                              "-"
+                                ?.name
                             }
                           </td>
 
                           <td>
-                            {
-                              item.location
-                                ?.rack ||
-                              "-"
-                            }
+                            {item.location
+                              ?.rack || "-"}
                           </td>
 
                           <td>
-                            {
-                              item.location
-                                ?.shelf ||
-                              "-"
-                            }
+                            {item.location
+                              ?.shelf || "-"}
                           </td>
 
                           <td>
-                            {
-                              item.location
-                                ?.section ||
-                              "-"
-                            }
+                            {item.location
+                              ?.section ||
+                              "-"}
                           </td>
 
                           <td>
@@ -4073,14 +4261,13 @@ function App() {
                           <td>
                             <span
                               className={
-                                isLow
-                                  ? "inventory-status low"
-                                  : "inventory-status normal"
+                                status ===
+                                "NORMAL"
+                                  ? "inventory-status normal"
+                                  : "inventory-status low"
                               }
                             >
-                              {isLow
-                                ? "LOW STOCK"
-                                : "IN STOCK"}
+                              {status}
                             </span>
                           </td>
                         </tr>
@@ -4096,145 +4283,146 @@ function App() {
         {showTransferForm && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <div className="modal-header">
-                <div>
-                  <h3>Transfer Stock</h3>
-                  <p>
-                    Move stock from one
-                    location to another.
-                  </p>
-                </div>
-
-                <button
-                  className="close-button"
-                  onClick={
-                    closeTransferForm
-                  }
-                >
-                  ×
-                </button>
-              </div>
+              <h3>
+                Transfer Stock
+              </h3>
 
               <form
                 onSubmit={
                   handleTransferStock
                 }
               >
-                <div className="form-grid">
-                  <div className="form-group full-span">
-                    <label>
-                      Product *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    Product
+                  </label>
 
-                    <select
-                      name="productId"
-                      value={
-                        transferForm.productId
-                      }
-                      onChange={
-                        handleTransferFormChange
-                      }
-                      required
-                    >
-                      <option value="">
-                        Select product
-                      </option>
+                  <select
+                    name="productId"
+                    value={
+                      transferForm.productId
+                    }
+                    onChange={
+                      handleTransferFormChange
+                    }
+                    required
+                  >
+                    <option value="">
+                      Select Product
+                    </option>
 
-                      {products.map(
-                        (product) => (
-                          <option
-                            key={product.id}
-                            value={product.id}
-                          >
-                            {product.name}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
+                    {products.map(
+                      (product) => (
+                        <option
+                          key={
+                            product.id
+                          }
+                          value={
+                            product.id
+                          }
+                        >
+                          {
+                            product.name
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label>
-                      From Location *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    From Location
+                  </label>
 
-                    <select
-                      name="fromLocationId"
-                      value={
-                        transferForm.fromLocationId
-                      }
-                      onChange={
-                        handleTransferFormChange
-                      }
-                      required
-                    >
-                      <option value="">
-                        Select source
-                      </option>
+                  <select
+                    name="fromLocationId"
+                    value={
+                      transferForm.fromLocationId
+                    }
+                    onChange={
+                      handleTransferFormChange
+                    }
+                    required
+                  >
+                    <option value="">
+                      Select Source
+                    </option>
 
-                      {locations.map(
-                        (location) => (
-                          <option
-                            key={location.id}
-                            value={location.id}
-                          >
-                            {location.name}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
+                    {locations.map(
+                      (location) => (
+                        <option
+                          key={
+                            location.id
+                          }
+                          value={
+                            location.id
+                          }
+                        >
+                          {
+                            location.name
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label>
-                      To Location *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    To Location
+                  </label>
 
-                    <select
-                      name="toLocationId"
-                      value={
-                        transferForm.toLocationId
-                      }
-                      onChange={
-                        handleTransferFormChange
-                      }
-                      required
-                    >
-                      <option value="">
-                        Select destination
-                      </option>
+                  <select
+                    name="toLocationId"
+                    value={
+                      transferForm.toLocationId
+                    }
+                    onChange={
+                      handleTransferFormChange
+                    }
+                    required
+                  >
+                    <option value="">
+                      Select Destination
+                    </option>
 
-                      {locations.map(
-                        (location) => (
-                          <option
-                            key={location.id}
-                            value={location.id}
-                          >
-                            {location.name}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
+                    {locations.map(
+                      (location) => (
+                        <option
+                          key={
+                            location.id
+                          }
+                          value={
+                            location.id
+                          }
+                        >
+                          {
+                            location.name
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label>
-                      Quantity *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    Quantity
+                  </label>
 
-                    <input
-                      type="number"
-                      min="1"
-                      name="quantity"
-                      value={
-                        transferForm.quantity
-                      }
-                      onChange={
-                        handleTransferFormChange
-                      }
-                      required
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={
+                      transferForm.quantity
+                    }
+                    onChange={
+                      handleTransferFormChange
+                    }
+                    min="1"
+                    required
+                  />
                 </div>
 
                 <div className="modal-actions">
@@ -4268,114 +4456,108 @@ function App() {
         {showAdjustmentForm && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <div className="modal-header">
-                <div>
-                  <h3>Adjust Stock</h3>
-                  <p>
-                    Use a positive number to
-                    add stock and a negative
-                    number to reduce stock.
-                  </p>
-                </div>
-
-                <button
-                  className="close-button"
-                  onClick={
-                    closeAdjustmentForm
-                  }
-                >
-                  ×
-                </button>
-              </div>
+              <h3>
+                Adjust Stock
+              </h3>
 
               <form
                 onSubmit={
                   handleAdjustStock
                 }
               >
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>
-                      Product *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    Product
+                  </label>
 
-                    <select
-                      name="productId"
-                      value={
-                        adjustmentForm.productId
-                      }
-                      onChange={
-                        handleAdjustmentFormChange
-                      }
-                      required
-                    >
-                      <option value="">
-                        Select product
-                      </option>
+                  <select
+                    name="productId"
+                    value={
+                      adjustmentForm.productId
+                    }
+                    onChange={
+                      handleAdjustmentFormChange
+                    }
+                    required
+                  >
+                    <option value="">
+                      Select Product
+                    </option>
 
-                      {products.map(
-                        (product) => (
-                          <option
-                            key={product.id}
-                            value={product.id}
-                          >
-                            {product.name}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
+                    {products.map(
+                      (product) => (
+                        <option
+                          key={
+                            product.id
+                          }
+                          value={
+                            product.id
+                          }
+                        >
+                          {
+                            product.name
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label>
-                      Location *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    Location
+                  </label>
 
-                    <select
-                      name="locationId"
-                      value={
-                        adjustmentForm.locationId
-                      }
-                      onChange={
-                        handleAdjustmentFormChange
-                      }
-                      required
-                    >
-                      <option value="">
-                        Select location
-                      </option>
+                  <select
+                    name="locationId"
+                    value={
+                      adjustmentForm.locationId
+                    }
+                    onChange={
+                      handleAdjustmentFormChange
+                    }
+                    required
+                  >
+                    <option value="">
+                      Select Location
+                    </option>
 
-                      {locations.map(
-                        (location) => (
-                          <option
-                            key={location.id}
-                            value={location.id}
-                          >
-                            {location.name}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
+                    {locations.map(
+                      (location) => (
+                        <option
+                          key={
+                            location.id
+                          }
+                          value={
+                            location.id
+                          }
+                        >
+                          {
+                            location.name
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label>
-                      Adjustment Quantity *
-                    </label>
+                <div className="form-group">
+                  <label>
+                    Adjustment Quantity
+                  </label>
 
-                    <input
-                      type="number"
-                      name="adjustmentQuantity"
-                      value={
-                        adjustmentForm.adjustmentQuantity
-                      }
-                      onChange={
-                        handleAdjustmentFormChange
-                      }
-                      placeholder="Example: 10 or -5"
-                      required
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    name="adjustmentQuantity"
+                    value={
+                      adjustmentForm.adjustmentQuantity
+                    }
+                    onChange={
+                      handleAdjustmentFormChange
+                    }
+                    placeholder="Example: +10 or -5"
+                    required
+                  />
                 </div>
 
                 <div className="modal-actions">
@@ -4414,14 +4596,16 @@ function App() {
   // =========================================================
 
   function ReportsPage() {
-    const dashboard = reports.dashboard || {};
+    const dashboard =
+      reports.dashboard;
 
-    const sales = reports.sales || {
-      totalInvoices: 0,
-      totalSales: 0,
-      totalItemsSold: 0,
-      sales: [],
-    };
+    const sales =
+      reports.sales || {
+        totalInvoices: 0,
+        totalSales: 0,
+        totalItemsSold: 0,
+        sales: [],
+      };
 
     const purchaseReport =
       reports.purchases || {
@@ -4432,14 +4616,14 @@ function App() {
       };
 
     return (
-      <div className="reports-page">
+      <div>
         <div className="page-heading">
           <div>
             <h2>Reports & Analytics</h2>
 
             <p>
-              Inventory, sales, purchase and
-              location reports
+              Business and inventory
+              reports
             </p>
           </div>
 
@@ -4449,7 +4633,7 @@ function App() {
             disabled={reportsLoading}
           >
             {reportsLoading
-              ? "Loading..."
+              ? "Refreshing..."
               : "↻ Refresh Reports"}
           </button>
         </div>
@@ -4460,279 +4644,102 @@ function App() {
           </div>
         )}
 
-        {reportsLoading &&
-        !reports.dashboard ? (
+        {reportsLoading ? (
           <div className="empty-state">
             Loading reports...
           </div>
         ) : (
           <>
-            {/* SUMMARY */}
-
-            <div className="report-summary-grid">
-              <div className="report-card">
-                <span>Total Products</span>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-label">
+                  Products
+                </span>
 
                 <strong>
-                  {dashboard.totalProducts || 0}
+                  {dashboard
+                    ?.totalProducts ||
+                    0}
                 </strong>
               </div>
 
-              <div className="report-card">
-                <span>Total Stock</span>
+              <div className="stat-card">
+                <span className="stat-label">
+                  Stock
+                </span>
 
                 <strong>
-                  {dashboard.totalStock || 0}
+                  {dashboard
+                    ?.totalStock || 0}
                 </strong>
               </div>
 
-              <div className="report-card">
-                <span>Low Stock</span>
+              <div className="stat-card">
+                <span className="stat-label">
+                  Low Stock
+                </span>
 
                 <strong>
-                  {dashboard.lowStock || 0}
+                  {dashboard
+                    ?.lowStock || 0}
                 </strong>
               </div>
 
-              <div className="report-card">
-                <span>Inventory Value</span>
+              <div className="stat-card">
+                <span className="stat-label">
+                  Inventory Value
+                </span>
 
                 <strong>
                   ₹
                   {Number(
-                    dashboard.inventoryValue ||
+                    dashboard
+                      ?.inventoryValue ||
                       0
                   ).toFixed(2)}
                 </strong>
               </div>
 
-              <div className="report-card">
-                <span>Total Purchases</span>
+              <div className="stat-card">
+                <span className="stat-label">
+                  Total Sales
+                </span>
 
                 <strong>
                   ₹
                   {Number(
-                    dashboard.totalPurchases ||
+                    sales.totalSales ||
                       0
                   ).toFixed(2)}
                 </strong>
               </div>
 
-              <div className="report-card">
-                <span>Total Sales</span>
+              <div className="stat-card">
+                <span className="stat-label">
+                  Total Purchases
+                </span>
 
                 <strong>
                   ₹
                   {Number(
-                    dashboard.totalSales ||
+                    purchaseReport.totalPurchases ||
                       0
                   ).toFixed(2)}
                 </strong>
               </div>
             </div>
 
-            {/* LOCATION REPORT */}
-
             <section className="report-section">
               <div className="section-header">
                 <div>
                   <h3>
-                    Location-wise Inventory
+                    Inventory Report
                   </h3>
-
-                  <p>
-                    Stock available at each
-                    location
-                  </p>
-                </div>
-              </div>
-
-              <div className="table-container">
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>Location</th>
-                      <th>Rack</th>
-                      <th>Shelf</th>
-                      <th>Section</th>
-                      <th>Products</th>
-                      <th>Total Stock</th>
-                      <th>Inventory Value</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {reports.location.length ===
-                    0 ? (
-                      <tr>
-                        <td
-                          colSpan="7"
-                          className="empty-table"
-                        >
-                          No location data
-                          available.
-                        </td>
-                      </tr>
-                    ) : (
-                      reports.location.map(
-                        (location) => (
-                          <tr
-                            key={
-                              location.locationId
-                            }
-                          >
-                            <td>
-                              <strong>
-                                {
-                                  location.locationName
-                                }
-                              </strong>
-                            </td>
-
-                            <td>
-                              {location.rack ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {location.shelf ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {location.section ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {
-                                location.totalProducts
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                location.totalStock
-                              }
-                            </td>
-
-                            <td>
-                              ₹
-                              {Number(
-                                location.inventoryValue ||
-                                  0
-                              ).toFixed(2)}
-                            </td>
-                          </tr>
-                        )
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* CATEGORY REPORT */}
-
-            <section className="report-section">
-              <div className="section-header">
-                <div>
-                  <h3>
-                    Category-wise Inventory
-                  </h3>
-
-                  <p>
-                    Stock grouped by category
-                  </p>
-                </div>
-              </div>
-
-              <div className="table-container">
-                <table className="report-table">
-                  <thead>
-                    <tr>
-                      <th>Category</th>
-                      <th>Products</th>
-                      <th>Total Stock</th>
-                      <th>Inventory Value</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {reports.category.length ===
-                    0 ? (
-                      <tr>
-                        <td
-                          colSpan="4"
-                          className="empty-table"
-                        >
-                          No category data
-                          available.
-                        </td>
-                      </tr>
-                    ) : (
-                      reports.category.map(
-                        (category) => (
-                          <tr
-                            key={
-                              category.categoryId
-                            }
-                          >
-                            <td>
-                              <strong>
-                                {
-                                  category.categoryName
-                                }
-                              </strong>
-                            </td>
-
-                            <td>
-                              {
-                                category.totalProducts
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                category.totalStock
-                              }
-                            </td>
-
-                            <td>
-                              ₹
-                              {Number(
-                                category.inventoryValue ||
-                                  0
-                              ).toFixed(2)}
-                            </td>
-                          </tr>
-                        )
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* DETAILED INVENTORY REPORT */}
-
-            <section className="report-section">
-              <div className="section-header">
-                <div>
-                  <h3>
-                    Detailed Inventory Report
-                  </h3>
-
-                  <p>
-                    Search and filter all
-                    inventory records
-                  </p>
                 </div>
               </div>
 
               <div className="report-filters">
                 <input
-                  type="text"
                   value={
                     reportInventorySearch
                   }
@@ -4741,7 +4748,7 @@ function App() {
                       event.target.value
                     )
                   }
-                  placeholder="Search product, part number or location..."
+                  placeholder="Search product..."
                 />
 
                 <select
@@ -4758,19 +4765,13 @@ function App() {
                     All Locations
                   </option>
 
-                  {reports.location.map(
+                  {locations.map(
                     (location) => (
                       <option
-                        key={
-                          location.locationId
-                        }
-                        value={
-                          location.locationId
-                        }
+                        key={location.id}
+                        value={location.id}
                       >
-                        {
-                          location.locationName
-                        }
+                        {location.name}
                       </option>
                     )
                   )}
@@ -4790,27 +4791,24 @@ function App() {
                     All Categories
                   </option>
 
-                  {[
-                    ...new Set(
-                      reports.inventory
-                        .map(
-                          (item) =>
-                            item.category
-                        )
-                        .filter(Boolean)
-                    ),
-                  ].map((category) => (
-                    <option
-                      key={category}
-                      value={category}
-                    >
-                      {category}
-                    </option>
-                  ))}
+                  {categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={
+                          category.name
+                        }
+                      >
+                        {category.name}
+                      </option>
+                    )
+                  )}
                 </select>
 
                 <select
-                  value={reportStatusFilter}
+                  value={
+                    reportStatusFilter
+                  }
                   onChange={(event) =>
                     setReportStatusFilter(
                       event.target.value
@@ -4833,22 +4831,10 @@ function App() {
                     OUT OF STOCK
                   </option>
                 </select>
-
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setReportInventorySearch("");
-                    setReportLocationFilter("");
-                    setReportCategoryFilter("");
-                    setReportStatusFilter("");
-                  }}
-                >
-                  Clear
-                </button>
               </div>
 
               <div className="table-container">
-                <table className="report-table">
+                <table>
                   <thead>
                     <tr>
                       <th>Product</th>
@@ -4858,9 +4844,9 @@ function App() {
                       <th>Location</th>
                       <th>Rack</th>
                       <th>Shelf</th>
-                      <th>Stock</th>
+                      <th>Quantity</th>
                       <th>Minimum</th>
-                      <th>Selling Price</th>
+                      <th>Price</th>
                       <th>Value</th>
                       <th>Status</th>
                     </tr>
@@ -4874,14 +4860,16 @@ function App() {
                           colSpan="12"
                           className="empty-table"
                         >
-                          No inventory records
-                          match your filters.
+                          No report records
+                          found.
                         </td>
                       </tr>
                     ) : (
                       filteredReportInventory.map(
                         (item) => (
-                          <tr key={item.id}>
+                          <tr
+                            key={item.id}
+                          >
                             <td>
                               <strong>
                                 {
@@ -4891,24 +4879,18 @@ function App() {
                             </td>
 
                             <td>
-                              {
-                                item.partNumber ||
-                                "-"
-                              }
+                              {item.partNumber ||
+                                "-"}
                             </td>
 
                             <td>
-                              {
-                                item.category ||
-                                "-"
-                              }
+                              {item.category ||
+                                "-"}
                             </td>
 
                             <td>
-                              {
-                                item.brand ||
-                                "-"
-                              }
+                              {item.brand ||
+                                "-"}
                             </td>
 
                             <td>
@@ -4918,17 +4900,13 @@ function App() {
                             </td>
 
                             <td>
-                              {
-                                item.rack ||
-                                "-"
-                              }
+                              {item.rack ||
+                                "-"}
                             </td>
 
                             <td>
-                              {
-                                item.shelf ||
-                                "-"
-                              }
+                              {item.shelf ||
+                                "-"}
                             </td>
 
                             <td>
@@ -4963,15 +4941,14 @@ function App() {
                               <span
                                 className={
                                   item.status ===
-                                  "OUT OF STOCK"
-                                    ? "inventory-status low"
-                                    : item.status ===
-                                      "LOW STOCK"
-                                    ? "inventory-status low"
-                                    : "inventory-status normal"
+                                    "NORMAL"
+                                    ? "inventory-status normal"
+                                    : "inventory-status low"
                                 }
                               >
-                                {item.status}
+                                {
+                                  item.status
+                                }
                               </span>
                             </td>
                           </tr>
@@ -4983,17 +4960,127 @@ function App() {
               </div>
             </section>
 
-            {/* SALES AND PURCHASE SUMMARY */}
+            <div className="report-two-column">
+              <section className="report-section">
+                <h3>
+                  Location Report
+                </h3>
+
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Location</th>
+                        <th>Products</th>
+                        <th>Stock</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {reports.location.map(
+                        (location) => (
+                          <tr
+                            key={
+                              location.locationId
+                            }
+                          >
+                            <td>
+                              {
+                                location.locationName
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                location.totalProducts
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                location.totalStock
+                              }
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                location.inventoryValue ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section className="report-section">
+                <h3>
+                  Category Report
+                </h3>
+
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Products</th>
+                        <th>Stock</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {reports.category.map(
+                        (category) => (
+                          <tr
+                            key={
+                              category.categoryId
+                            }
+                          >
+                            <td>
+                              {
+                                category.categoryName
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                category.totalProducts
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                category.totalStock
+                              }
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                category.inventoryValue ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
 
             <div className="report-two-column">
               <section className="report-section">
-                <div className="section-header">
-                  <div>
-                    <h3>
-                      Sales Summary
-                    </h3>
-                  </div>
-                </div>
+                <h3>
+                  Sales Summary
+                </h3>
 
                 <div className="mini-report">
                   <div>
@@ -5037,13 +5124,9 @@ function App() {
               </section>
 
               <section className="report-section">
-                <div className="section-header">
-                  <div>
-                    <h3>
-                      Purchase Summary
-                    </h3>
-                  </div>
-                </div>
+                <h3>
+                  Purchase Summary
+                </h3>
 
                 <div className="mini-report">
                   <div>
@@ -5098,6 +5181,8 @@ function App() {
 
   return (
     <div className="app">
+      {/* HEADER */}
+
       <header className="top-header">
         <div className="brand-section">
           <div className="brand-logo">
@@ -5105,7 +5190,10 @@ function App() {
           </div>
 
           <div>
-            <h1>Sri Vengamamba</h1>
+            <h1>
+              Sri Vengamamba
+            </h1>
+
             <span>
               Oils & Automobiles
             </span>
@@ -5115,32 +5203,41 @@ function App() {
         <div className="user-section">
           <div className="user-info">
             <strong>
-              {user?.name || "Admin"}
+              {user?.name ||
+                "Admin"}
             </strong>
 
             <span>
-              {user?.role || "ADMIN"}
+              {user?.role ||
+                "ADMIN"}
             </span>
           </div>
 
           <button
             className="logout-button"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
             Logout
           </button>
         </div>
       </header>
 
+      {/* NAVIGATION */}
+
       <nav className="navigation">
         <button
           className={
-            activePage === "dashboard"
+            activePage ===
+            "dashboard"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("dashboard")
+            setActivePage(
+              "dashboard"
+            )
           }
         >
           Dashboard
@@ -5148,12 +5245,15 @@ function App() {
 
         <button
           className={
-            activePage === "inventory"
+            activePage ===
+            "inventory"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("inventory")
+            setActivePage(
+              "inventory"
+            )
           }
         >
           Inventory
@@ -5161,12 +5261,15 @@ function App() {
 
         <button
           className={
-            activePage === "purchases"
+            activePage ===
+            "purchases"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("purchases")
+            setActivePage(
+              "purchases"
+            )
           }
         >
           Purchases
@@ -5174,12 +5277,15 @@ function App() {
 
         <button
           className={
-            activePage === "sales"
+            activePage ===
+            "sales"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("sales")
+            setActivePage(
+              "sales"
+            )
           }
         >
           Sales
@@ -5187,12 +5293,15 @@ function App() {
 
         <button
           className={
-            activePage === "suppliers"
+            activePage ===
+            "suppliers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("suppliers")
+            setActivePage(
+              "suppliers"
+            )
           }
         >
           Suppliers
@@ -5200,67 +5309,86 @@ function App() {
 
         <button
           className={
-            activePage === "customers"
+            activePage ===
+            "customers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("customers")
+            setActivePage(
+              "customers"
+            )
           }
         >
           Customers
         </button>
 
-        {/* DAY 17 */}
-
         <button
           className={
-            activePage === "reports"
+            activePage ===
+            "reports"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage("reports")
+            setActivePage(
+              "reports"
+            )
           }
         >
           Reports
         </button>
       </nav>
 
+      {/* PAGE */}
+
       <main className="main-content">
-        {activePage === "dashboard" && (
+        {activePage ===
+          "dashboard" && (
           <DashboardPage />
         )}
 
-        {activePage === "inventory" && (
+        {activePage ===
+          "inventory" && (
           <InventoryPage />
         )}
 
-        {activePage === "purchases" && (
+        {activePage ===
+          "purchases" && (
           <PurchasesPage />
         )}
 
-        {activePage === "sales" && (
+        {activePage ===
+          "sales" && (
           <SalesPage />
         )}
 
-        {activePage === "suppliers" && (
+        {activePage ===
+          "suppliers" && (
           <SuppliersPage />
         )}
 
-        {activePage === "customers" && (
+        {activePage ===
+          "customers" && (
           <CustomersPage />
         )}
 
-        {activePage === "reports" && (
+        {activePage ===
+          "reports" && (
           <ReportsPage />
         )}
       </main>
 
+      {/* FOOTER */}
+
       <footer className="app-footer">
-        Sri Vengamamba Oils & Automobiles
+        Sri Vengamamba Oils &
+        Automobiles
+
         <span>•</span>
-        Inventory Management System
+
+        Inventory Management
+        System
       </footer>
     </div>
   );
