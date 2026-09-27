@@ -43,6 +43,27 @@ function App() {
   const [brands, setBrands] = useState([]);
   const [locations, setLocations] = useState([]);
 
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [productFormError, setProductFormError] = useState("");
+  const [productFormSuccess, setProductFormSuccess] = useState("");
+
+  const [productForm, setProductForm] = useState({
+    name: "",
+    partNumber: "",
+    description: "",
+    vehicleModel: "",
+    mrp: "",
+    sellingPrice: "",
+    minimumStock: "",
+    categoryId: "",
+    brandId: "",
+  });
+
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [productBrandFilter, setProductBrandFilter] = useState("");
+
   // =========================================================
   // SUPPLIERS
   // =========================================================
@@ -84,37 +105,6 @@ function App() {
   const [customerFormSuccess, setCustomerFormSuccess] = useState("");
 
   // =========================================================
-  // PRODUCT FORM
-  // =========================================================
-
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [productFormError, setProductFormError] = useState("");
-  const [productFormSuccess, setProductFormSuccess] = useState("");
-  const [savingProduct, setSavingProduct] = useState(false);
-
-  const [productForm, setProductForm] = useState({
-    name: "",
-    partNumber: "",
-    description: "",
-    vehicleModel: "",
-    mrp: "",
-    sellingPrice: "",
-    minimumStock: "",
-    categoryId: "",
-    brandId: "",
-  });
-
-  // =========================================================
-  // PRODUCT SEARCH / FILTER
-  // =========================================================
-
-  const [productSearch, setProductSearch] = useState("");
-  const [productCategoryFilter, setProductCategoryFilter] =
-    useState("");
-  const [productBrandFilter, setProductBrandFilter] =
-    useState("");
-
-  // =========================================================
   // PURCHASES
   // =========================================================
 
@@ -129,7 +119,6 @@ function App() {
   });
 
   const [purchases, setPurchases] = useState([]);
-
   const [purchaseError, setPurchaseError] = useState("");
   const [purchaseSuccess, setPurchaseSuccess] = useState("");
   const [savingPurchase, setSavingPurchase] = useState(false);
@@ -148,19 +137,12 @@ function App() {
   });
 
   const [sales, setSales] = useState([]);
-
   const [saleError, setSaleError] = useState("");
   const [saleSuccess, setSaleSuccess] = useState("");
   const [savingSale, setSavingSale] = useState(false);
 
   // =========================================================
-  // DASHBOARD
-  // =========================================================
-
-  const [dashboardLoading, setDashboardLoading] = useState(false);
-
-  // =========================================================
-  // DAY 16 - INVENTORY CONTROL
+  // INVENTORY - DAY 16
   // =========================================================
 
   const [inventory, setInventory] = useState([]);
@@ -174,17 +156,13 @@ function App() {
     useState(false);
 
   const [showTransferForm, setShowTransferForm] = useState(false);
-  const [showAdjustmentForm, setShowAdjustmentForm] =
-    useState(false);
+  const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
 
   const [savingTransfer, setSavingTransfer] = useState(false);
-  const [savingAdjustment, setSavingAdjustment] =
-    useState(false);
+  const [savingAdjustment, setSavingAdjustment] = useState(false);
 
-  const [inventoryActionError, setInventoryActionError] =
-    useState("");
-  const [inventoryActionSuccess, setInventoryActionSuccess] =
-    useState("");
+  const [inventoryActionError, setInventoryActionError] = useState("");
+  const [inventoryActionSuccess, setInventoryActionSuccess] = useState("");
 
   const [transferForm, setTransferForm] = useState({
     productId: "",
@@ -198,6 +176,33 @@ function App() {
     locationId: "",
     adjustmentQuantity: "",
   });
+
+  // =========================================================
+  // REPORTS - DAY 17
+  // =========================================================
+
+  const [reports, setReports] = useState({
+    dashboard: null,
+    inventory: [],
+    location: [],
+    category: [],
+    sales: null,
+    purchases: null,
+  });
+
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState("");
+
+  const [reportInventorySearch, setReportInventorySearch] = useState("");
+  const [reportLocationFilter, setReportLocationFilter] = useState("");
+  const [reportCategoryFilter, setReportCategoryFilter] = useState("");
+  const [reportStatusFilter, setReportStatusFilter] = useState("");
+
+  // =========================================================
+  // DASHBOARD
+  // =========================================================
+
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   // =========================================================
   // AUTH HEADERS
@@ -226,47 +231,32 @@ function App() {
     setLoggingIn(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(loginForm),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginForm),
+      });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || "Login failed"
-        );
+        throw new Error(result.message || "Login failed");
       }
 
       const newToken = result.data.token;
       const newUser = result.data.user;
 
-      localStorage.setItem(
-        "inventoryToken",
-        newToken
-      );
-
-      localStorage.setItem(
-        "inventoryUser",
-        JSON.stringify(newUser)
-      );
+      localStorage.setItem("inventoryToken", newToken);
+      localStorage.setItem("inventoryUser", JSON.stringify(newUser));
 
       setToken(newToken);
       setUser(newUser);
       setActivePage("dashboard");
     } catch (error) {
       console.error("Login error:", error);
-
-      setLoginError(
-        error.message || "Unable to login"
-      );
+      setLoginError(error.message || "Unable to login");
     } finally {
       setLoggingIn(false);
     }
@@ -291,32 +281,21 @@ function App() {
 
   async function fetchProducts() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/products`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/products`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to fetch products"
-        );
+        throw new Error(result.message || "Failed to fetch products");
       }
 
-      const productData = Array.isArray(result)
-        ? result
-        : result.data || [];
-
-      setProducts(productData);
-    } catch (error) {
-      console.error(
-        "Fetch products error:",
-        error
+      setProducts(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch products error:", error);
     }
   }
 
@@ -326,32 +305,23 @@ function App() {
 
   async function fetchCategories() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/categories`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/categories`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to fetch categories"
+          result.message || "Failed to fetch categories"
         );
       }
 
-      const categoryData = Array.isArray(result)
-        ? result
-        : result.data || [];
-
-      setCategories(categoryData);
-    } catch (error) {
-      console.error(
-        "Fetch categories error:",
-        error
+      setCategories(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch categories error:", error);
     }
   }
 
@@ -361,32 +331,21 @@ function App() {
 
   async function fetchBrands() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/brands`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/brands`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to fetch brands"
-        );
+        throw new Error(result.message || "Failed to fetch brands");
       }
 
-      const brandData = Array.isArray(result)
-        ? result
-        : result.data || [];
-
-      setBrands(brandData);
-    } catch (error) {
-      console.error(
-        "Fetch brands error:",
-        error
+      setBrands(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch brands error:", error);
     }
   }
 
@@ -396,32 +355,23 @@ function App() {
 
   async function fetchLocations() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/locations`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/locations`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to fetch locations"
+          result.message || "Failed to fetch locations"
         );
       }
 
-      const locationData = Array.isArray(result)
-        ? result
-        : result.data || [];
-
-      setLocations(locationData);
-    } catch (error) {
-      console.error(
-        "Fetch locations error:",
-        error
+      setLocations(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch locations error:", error);
     }
   }
 
@@ -431,31 +381,21 @@ function App() {
 
   async function fetchSuppliers() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/suppliers`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/suppliers`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
-          result.message ||
-            "Failed to fetch suppliers"
+          result.message || "Failed to fetch suppliers"
         );
       }
 
       setSuppliers(result.data || []);
     } catch (error) {
-      console.error(
-        "Fetch suppliers error:",
-        error
-      );
+      console.error("Fetch suppliers error:", error);
     }
   }
 
@@ -465,31 +405,21 @@ function App() {
 
   async function fetchCustomers() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/customers`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/customers`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
-          result.message ||
-            "Failed to fetch customers"
+          result.message || "Failed to fetch customers"
         );
       }
 
       setCustomers(result.data || []);
     } catch (error) {
-      console.error(
-        "Fetch customers error:",
-        error
-      );
+      console.error("Fetch customers error:", error);
     }
   }
 
@@ -499,33 +429,23 @@ function App() {
 
   async function fetchPurchases() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/purchases`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/purchases`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to fetch purchases"
+          result.message || "Failed to fetch purchases"
         );
       }
 
-      const purchaseData =
-        Array.isArray(result)
-          ? result
-          : result.data || [];
-
-      setPurchases(purchaseData);
-    } catch (error) {
-      console.error(
-        "Fetch purchases error:",
-        error
+      setPurchases(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch purchases error:", error);
     }
   }
 
@@ -535,38 +455,26 @@ function App() {
 
   async function fetchSales() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/sales`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/sales`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to fetch sales"
-        );
+        throw new Error(result.message || "Failed to fetch sales");
       }
 
-      const salesData =
-        Array.isArray(result)
-          ? result
-          : result.data || [];
-
-      setSales(salesData);
-    } catch (error) {
-      console.error(
-        "Fetch sales error:",
-        error
+      setSales(
+        Array.isArray(result) ? result : result.data || []
       );
+    } catch (error) {
+      console.error("Fetch sales error:", error);
     }
   }
 
   // =========================================================
-  // FETCH INVENTORY - DAY 16
+  // FETCH INVENTORY
   // =========================================================
 
   async function fetchInventory() {
@@ -574,40 +482,25 @@ function App() {
       setInventoryLoading(true);
       setInventoryError("");
 
-      const response = await fetch(
-        `${API_URL}/api/inventory`,
-        {
-          headers: getHeaders(),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/inventory`, {
+        headers: getHeaders(),
+      });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        result.success === false
-      ) {
+      if (!response.ok || result.success === false) {
         throw new Error(
-          result.message ||
-            "Failed to fetch inventory"
+          result.message || "Failed to fetch inventory"
         );
       }
 
-      const inventoryData =
-        Array.isArray(result)
-          ? result
-          : result.data || [];
-
-      setInventory(inventoryData);
-    } catch (error) {
-      console.error(
-        "Fetch inventory error:",
-        error
+      setInventory(
+        Array.isArray(result) ? result : result.data || []
       );
-
+    } catch (error) {
+      console.error("Fetch inventory error:", error);
       setInventoryError(
-        error.message ||
-          "Unable to load inventory"
+        error.message || "Unable to load inventory"
       );
     } finally {
       setInventoryLoading(false);
@@ -615,13 +508,130 @@ function App() {
   }
 
   // =========================================================
-  // INITIAL DATA LOAD
+  // FETCH REPORTS - DAY 17
+  // =========================================================
+
+  async function fetchReports() {
+    try {
+      setReportsLoading(true);
+      setReportsError("");
+
+      const [
+        dashboardResponse,
+        inventoryResponse,
+        locationResponse,
+        categoryResponse,
+        salesResponse,
+        purchasesResponse,
+      ] = await Promise.all([
+        fetch(`${API_URL}/api/reports/dashboard`, {
+          headers: getHeaders(),
+        }),
+        fetch(`${API_URL}/api/reports/inventory`, {
+          headers: getHeaders(),
+        }),
+        fetch(`${API_URL}/api/reports/location`, {
+          headers: getHeaders(),
+        }),
+        fetch(`${API_URL}/api/reports/category`, {
+          headers: getHeaders(),
+        }),
+        fetch(`${API_URL}/api/reports/sales`, {
+          headers: getHeaders(),
+        }),
+        fetch(`${API_URL}/api/reports/purchases`, {
+          headers: getHeaders(),
+        }),
+      ]);
+
+      const dashboardResult = await dashboardResponse.json();
+      const inventoryResult = await inventoryResponse.json();
+      const locationResult = await locationResponse.json();
+      const categoryResult = await categoryResponse.json();
+      const salesResult = await salesResponse.json();
+      const purchasesResult = await purchasesResponse.json();
+
+      if (
+        !dashboardResponse.ok ||
+        !dashboardResult.success
+      ) {
+        throw new Error(
+          dashboardResult.message ||
+            "Failed to fetch dashboard report"
+        );
+      }
+
+      if (
+        !inventoryResponse.ok ||
+        !inventoryResult.success
+      ) {
+        throw new Error(
+          inventoryResult.message ||
+            "Failed to fetch inventory report"
+        );
+      }
+
+      if (
+        !locationResponse.ok ||
+        !locationResult.success
+      ) {
+        throw new Error(
+          locationResult.message ||
+            "Failed to fetch location report"
+        );
+      }
+
+      if (
+        !categoryResponse.ok ||
+        !categoryResult.success
+      ) {
+        throw new Error(
+          categoryResult.message ||
+            "Failed to fetch category report"
+        );
+      }
+
+      if (!salesResponse.ok || !salesResult.success) {
+        throw new Error(
+          salesResult.message ||
+            "Failed to fetch sales report"
+        );
+      }
+
+      if (
+        !purchasesResponse.ok ||
+        !purchasesResult.success
+      ) {
+        throw new Error(
+          purchasesResult.message ||
+            "Failed to fetch purchase report"
+        );
+      }
+
+      setReports({
+        dashboard: dashboardResult.data,
+        inventory: inventoryResult.data || [],
+        location: locationResult.data || [],
+        category: categoryResult.data || [],
+        sales: salesResult.data,
+        purchases: purchasesResult.data,
+      });
+    } catch (error) {
+      console.error("Fetch reports error:", error);
+      setReportsError(
+        error.message || "Unable to load reports"
+      );
+    } finally {
+      setReportsLoading(false);
+    }
+  }
+
+  // =========================================================
+  // INITIAL LOAD
   // =========================================================
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     async function loadAllData() {
       setDashboardLoading(true);
@@ -645,7 +655,17 @@ function App() {
   }, [token]);
 
   // =========================================================
-  // PRODUCT FORM
+  // LOAD REPORTS WHEN REPORT PAGE OPENS
+  // =========================================================
+
+  useEffect(() => {
+    if (token && activePage === "reports") {
+      fetchReports();
+    }
+  }, [activePage, token]);
+
+  // =========================================================
+  // PRODUCT FUNCTIONS
   // =========================================================
 
   function handleProductFormChange(event) {
@@ -693,88 +713,56 @@ function App() {
 
     try {
       if (!productForm.name.trim()) {
-        throw new Error(
-          "Product name is required"
-        );
+        throw new Error("Product name is required");
       }
 
       if (!productForm.partNumber.trim()) {
-        throw new Error(
-          "Part number is required"
-        );
+        throw new Error("Part number is required");
       }
 
       if (
         productForm.mrp === "" ||
         Number(productForm.mrp) < 0
       ) {
-        throw new Error(
-          "Enter a valid MRP"
-        );
+        throw new Error("Enter a valid MRP");
       }
 
       if (
         productForm.sellingPrice === "" ||
         Number(productForm.sellingPrice) < 0
       ) {
-        throw new Error(
-          "Enter a valid selling price"
-        );
+        throw new Error("Enter a valid selling price");
       }
 
       if (!productForm.categoryId) {
-        throw new Error(
-          "Please select a category"
-        );
+        throw new Error("Please select a category");
       }
 
-      const response = await fetch(
-        `${API_URL}/api/products`,
-        {
-          method: "POST",
-          headers: getHeaders(true),
-          body: JSON.stringify({
-            name: productForm.name.trim(),
-            partNumber:
-              productForm.partNumber.trim(),
-            description:
-              productForm.description ||
-              null,
-            vehicleModel:
-              productForm.vehicleModel ||
-              null,
-            mrp: Number(productForm.mrp),
-            sellingPrice:
-              Number(
-                productForm.sellingPrice
-              ),
-            minimumStock:
-              Number(
-                productForm.minimumStock || 0
-              ),
-            categoryId:
-              Number(
-                productForm.categoryId
-              ),
-            brandId:
-              productForm.brandId
-                ? Number(
-                    productForm.brandId
-                  )
-                : null,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/products`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify({
+          name: productForm.name.trim(),
+          partNumber: productForm.partNumber.trim(),
+          description: productForm.description || null,
+          vehicleModel: productForm.vehicleModel || null,
+          mrp: Number(productForm.mrp),
+          sellingPrice: Number(productForm.sellingPrice),
+          minimumStock: Number(
+            productForm.minimumStock || 0
+          ),
+          categoryId: Number(productForm.categoryId),
+          brandId: productForm.brandId
+            ? Number(productForm.brandId)
+            : null,
+        }),
+      });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        result.success === false
-      ) {
+      if (!response.ok || result.success === false) {
         throw new Error(
-          result.message ||
-            "Unable to create product"
+          result.message || "Unable to create product"
         );
       }
 
@@ -784,19 +772,13 @@ function App() {
       ]);
 
       closeProductForm();
-
       setProductFormSuccess(
         "Product created successfully."
       );
     } catch (error) {
-      console.error(
-        "Save product error:",
-        error
-      );
-
+      console.error("Save product error:", error);
       setProductFormError(
-        error.message ||
-          "Unable to create product."
+        error.message || "Unable to create product."
       );
     } finally {
       setSavingProduct(false);
@@ -804,7 +786,7 @@ function App() {
   }
 
   // =========================================================
-  // PURCHASE FORM
+  // PURCHASE FUNCTIONS
   // =========================================================
 
   function handlePurchaseFormChange(event) {
@@ -820,10 +802,9 @@ function App() {
     setPurchaseForm({
       supplierId: "",
       invoiceNumber: "",
-      purchaseDate:
-        new Date()
-          .toISOString()
-          .split("T")[0],
+      purchaseDate: new Date()
+        .toISOString()
+        .split("T")[0],
       productId: "",
       locationId: "",
       quantity: "",
@@ -840,29 +821,19 @@ function App() {
 
     try {
       if (!purchaseForm.supplierId) {
-        throw new Error(
-          "Please select a supplier."
-        );
+        throw new Error("Please select a supplier.");
       }
 
-      if (
-        !purchaseForm.invoiceNumber.trim()
-      ) {
-        throw new Error(
-          "Invoice number is required."
-        );
+      if (!purchaseForm.invoiceNumber.trim()) {
+        throw new Error("Invoice number is required.");
       }
 
       if (!purchaseForm.productId) {
-        throw new Error(
-          "Please select a product."
-        );
+        throw new Error("Please select a product.");
       }
 
       if (!purchaseForm.locationId) {
-        throw new Error(
-          "Please select a location."
-        );
+        throw new Error("Please select a location.");
       }
 
       if (
@@ -889,32 +860,27 @@ function App() {
           method: "POST",
           headers: getHeaders(true),
           body: JSON.stringify({
-            supplierId:
-              Number(
-                purchaseForm.supplierId
-              ),
+            supplierId: Number(
+              purchaseForm.supplierId
+            ),
             invoiceNumber:
               purchaseForm.invoiceNumber.trim(),
             purchaseDate:
               purchaseForm.purchaseDate,
             items: [
               {
-                productId:
-                  Number(
-                    purchaseForm.productId
-                  ),
-                locationId:
-                  Number(
-                    purchaseForm.locationId
-                  ),
-                quantity:
-                  Number(
-                    purchaseForm.quantity
-                  ),
-                purchasePrice:
-                  Number(
-                    purchaseForm.purchasePrice
-                  ),
+                productId: Number(
+                  purchaseForm.productId
+                ),
+                locationId: Number(
+                  purchaseForm.locationId
+                ),
+                quantity: Number(
+                  purchaseForm.quantity
+                ),
+                purchasePrice: Number(
+                  purchaseForm.purchasePrice
+                ),
               },
             ],
           }),
@@ -923,10 +889,7 @@ function App() {
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        result.success === false
-      ) {
+      if (!response.ok || result.success === false) {
         throw new Error(
           result.message ||
             "Unable to create purchase"
@@ -945,10 +908,7 @@ function App() {
         "Purchase created successfully."
       );
     } catch (error) {
-      console.error(
-        "Save purchase error:",
-        error
-      );
+      console.error("Save purchase error:", error);
 
       setPurchaseError(
         error.message ||
@@ -960,7 +920,7 @@ function App() {
   }
 
   // =========================================================
-  // SALES FORM
+  // SALES FUNCTIONS
   // =========================================================
 
   function handleSaleFormChange(event) {
@@ -987,37 +947,15 @@ function App() {
     productId,
     locationId
   ) {
-    const product = products.find(
-      (item) =>
-        Number(item.id) ===
-        Number(productId)
+    const item = inventory.find(
+      (inventoryItem) =>
+        Number(inventoryItem.productId) ===
+          Number(productId) &&
+        Number(inventoryItem.locationId) ===
+          Number(locationId)
     );
 
-    if (!product) {
-      return 0;
-    }
-
-    const inventories =
-      product.inventories ||
-      product.inventory ||
-      [];
-
-    if (!Array.isArray(inventories)) {
-      return 0;
-    }
-
-    const inventoryItem =
-      inventories.find(
-        (item) =>
-          Number(item.locationId) ===
-          Number(locationId)
-      );
-
-    return inventoryItem
-      ? Number(
-          inventoryItem.quantity || 0
-        )
-      : 0;
+    return item ? Number(item.quantity || 0) : 0;
   }
 
   async function handleSaveSale(event) {
@@ -1028,24 +966,16 @@ function App() {
     setSavingSale(true);
 
     try {
-      if (
-        !saleForm.invoiceNumber.trim()
-      ) {
-        throw new Error(
-          "Invoice number is required."
-        );
+      if (!saleForm.invoiceNumber.trim()) {
+        throw new Error("Invoice number is required.");
       }
 
       if (!saleForm.productId) {
-        throw new Error(
-          "Please select a product."
-        );
+        throw new Error("Please select a product.");
       }
 
       if (!saleForm.locationId) {
-        throw new Error(
-          "Please select a location."
-        );
+        throw new Error("Please select a location.");
       }
 
       if (
@@ -1089,30 +1019,24 @@ function App() {
           body: JSON.stringify({
             customerId:
               saleForm.customerId
-                ? Number(
-                    saleForm.customerId
-                  )
+                ? Number(saleForm.customerId)
                 : null,
             invoiceNumber:
               saleForm.invoiceNumber.trim(),
             items: [
               {
-                productId:
-                  Number(
-                    saleForm.productId
-                  ),
-                locationId:
-                  Number(
-                    saleForm.locationId
-                  ),
-                quantity:
-                  Number(
-                    saleForm.quantity
-                  ),
-                sellingPrice:
-                  Number(
-                    saleForm.sellingPrice
-                  ),
+                productId: Number(
+                  saleForm.productId
+                ),
+                locationId: Number(
+                  saleForm.locationId
+                ),
+                quantity: Number(
+                  saleForm.quantity
+                ),
+                sellingPrice: Number(
+                  saleForm.sellingPrice
+                ),
               },
             ],
           }),
@@ -1123,8 +1047,7 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Unable to create sale"
+          result.message || "Unable to create sale"
         );
       }
 
@@ -1140,10 +1063,7 @@ function App() {
         "Sale created successfully."
       );
     } catch (error) {
-      console.error(
-        "Save sale error:",
-        error
-      );
+      console.error("Save sale error:", error);
 
       setSaleError(
         error.message ||
@@ -1230,21 +1150,15 @@ function App() {
         headers: getHeaders(true),
         body: JSON.stringify({
           name: supplierForm.name.trim(),
-          phone:
-            supplierForm.phone || null,
-          email:
-            supplierForm.email || null,
-          address:
-            supplierForm.address || null,
+          phone: supplierForm.phone || null,
+          email: supplierForm.email || null,
+          address: supplierForm.address || null,
         }),
       });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Unable to save supplier"
@@ -1262,10 +1176,7 @@ function App() {
           : "Supplier created successfully."
       );
     } catch (error) {
-      console.error(
-        "Save supplier error:",
-        error
-      );
+      console.error("Save supplier error:", error);
 
       setSupplierFormError(
         error.message ||
@@ -1279,11 +1190,11 @@ function App() {
   async function handleDeleteSupplier(
     supplierId
   ) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this supplier?"
-    );
-
-    if (!confirmed) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this supplier?"
+      )
+    ) {
       return;
     }
 
@@ -1298,10 +1209,7 @@ function App() {
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Unable to delete supplier"
@@ -1397,21 +1305,15 @@ function App() {
         headers: getHeaders(true),
         body: JSON.stringify({
           name: customerForm.name.trim(),
-          phone:
-            customerForm.phone || null,
-          email:
-            customerForm.email || null,
-          address:
-            customerForm.address || null,
+          phone: customerForm.phone || null,
+          email: customerForm.email || null,
+          address: customerForm.address || null,
         }),
       });
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Unable to save customer"
@@ -1429,10 +1331,7 @@ function App() {
           : "Customer created successfully."
       );
     } catch (error) {
-      console.error(
-        "Save customer error:",
-        error
-      );
+      console.error("Save customer error:", error);
 
       setCustomerFormError(
         error.message ||
@@ -1446,11 +1345,11 @@ function App() {
   async function handleDeleteCustomer(
     customerId
   ) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this customer?"
-    );
-
-    if (!confirmed) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this customer?"
+      )
+    ) {
       return;
     }
 
@@ -1465,10 +1364,7 @@ function App() {
 
       const result = await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Unable to delete customer"
@@ -1489,14 +1385,12 @@ function App() {
   }
 
   // =========================================================
-  // PRODUCT FILTERING
+  // PRODUCT FILTER
   // =========================================================
 
   const filteredProducts = useMemo(() => {
     const search =
-      productSearch
-        .toLowerCase()
-        .trim();
+      productSearch.toLowerCase().trim();
 
     return products.filter((product) => {
       const matchesSearch =
@@ -1535,7 +1429,7 @@ function App() {
   ]);
 
   // =========================================================
-  // DASHBOARD CALCULATIONS
+  // STOCK CALCULATIONS
   // =========================================================
 
   function getProductStock(product) {
@@ -1545,186 +1439,138 @@ function App() {
       [];
 
     if (!Array.isArray(inventories)) {
-      return Number(
-        product.quantity || 0
-      );
+      return Number(product.quantity || 0);
     }
 
     return inventories.reduce(
       (total, item) =>
-        total +
-        Number(item.quantity || 0),
+        total + Number(item.quantity || 0),
       0
     );
   }
 
-  const totalProducts =
-    products.length;
+  const totalProducts = products.length;
 
-  const totalStock =
-    products.reduce(
-      (total, product) =>
-        total +
-        getProductStock(product),
-      0
-    );
+  const totalStock = products.reduce(
+    (total, product) =>
+      total + getProductStock(product),
+    0
+  );
 
   const lowStockProducts =
     products.filter(
       (product) =>
         getProductStock(product) <=
-        Number(
-          product.minimumStock || 0
-        )
+        Number(product.minimumStock || 0)
     );
 
-  const inventoryValue =
-    products.reduce(
-      (total, product) =>
-        total +
-        getProductStock(product) *
-          Number(
-            product.sellingPrice || 0
-          ),
-      0
-    );
+  const inventoryValue = products.reduce(
+    (total, product) =>
+      total +
+      getProductStock(product) *
+        Number(product.sellingPrice || 0),
+    0
+  );
 
-  const locationStock =
-    locations.map((location) => {
-      const stock =
-        products.reduce(
-          (total, product) => {
-            const inventories =
-              product.inventories ||
-              product.inventory ||
-              [];
+  const locationStock = locations.map(
+    (location) => {
+      const stock = products.reduce(
+        (total, product) => {
+          const inventories =
+            product.inventories ||
+            product.inventory ||
+            [];
 
-            if (
-              !Array.isArray(
-                inventories
-              )
-            ) {
-              return total;
-            }
-
-            const item =
-              inventories.find(
+          const item = Array.isArray(inventories)
+            ? inventories.find(
                 (inventoryItem) =>
                   Number(
                     inventoryItem.locationId
-                  ) ===
-                  Number(location.id)
-              );
-
-            return (
-              total +
-              Number(
-                item?.quantity || 0
+                  ) === Number(location.id)
               )
-            );
-          },
-          0
-        );
+            : null;
+
+          return (
+            total +
+            Number(item?.quantity || 0)
+          );
+        },
+        0
+      );
 
       return {
         ...location,
         stock,
       };
-    });
+    }
+  );
 
   // =========================================================
-  // DAY 16 INVENTORY FILTERING
+  // INVENTORY FILTERING
   // =========================================================
 
-  const filteredInventory =
-    useMemo(() => {
-      const search =
-        inventorySearch
+  const filteredInventory = useMemo(() => {
+    const search =
+      inventorySearch.toLowerCase().trim();
+
+    return inventory.filter((item) => {
+      const product =
+        item.product || {};
+
+      const location =
+        item.location || {};
+
+      const matchesSearch =
+        !search ||
+        String(product.name || "")
           .toLowerCase()
-          .trim();
+          .includes(search) ||
+        String(product.partNumber || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(product.vehicleModel || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(location.name || "")
+          .toLowerCase()
+          .includes(search);
 
-      return inventory.filter(
-        (item) => {
-          const product =
-            item.product || {};
+      const matchesLocation =
+        !inventoryLocationFilter ||
+        Number(item.locationId) ===
+          Number(inventoryLocationFilter);
 
-          const location =
-            item.location || {};
+      const matchesLowStock =
+        !inventoryLowStockOnly ||
+        Number(item.quantity || 0) <=
+          Number(product.minimumStock || 0);
 
-          const matchesSearch =
-            !search ||
-            String(
-              product.name || ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-            String(
-              product.partNumber || ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-            String(
-              product.vehicleModel ||
-                ""
-            )
-              .toLowerCase()
-              .includes(search) ||
-            String(
-              location.name || ""
-            )
-              .toLowerCase()
-              .includes(search);
-
-          const matchesLocation =
-            !inventoryLocationFilter ||
-            Number(
-              item.locationId
-            ) ===
-              Number(
-                inventoryLocationFilter
-              );
-
-          const matchesLowStock =
-            !inventoryLowStockOnly ||
-            Number(
-              item.quantity || 0
-            ) <=
-              Number(
-                product.minimumStock ||
-                  0
-              );
-
-          return (
-            matchesSearch &&
-            matchesLocation &&
-            matchesLowStock
-          );
-        }
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesLowStock
       );
-    }, [
-      inventory,
-      inventorySearch,
-      inventoryLocationFilter,
-      inventoryLowStockOnly,
-    ]);
+    });
+  }, [
+    inventory,
+    inventorySearch,
+    inventoryLocationFilter,
+    inventoryLowStockOnly,
+  ]);
 
   const inventoryTotalStock =
     inventory.reduce(
       (total, item) =>
-        total +
-        Number(item.quantity || 0),
+        total + Number(item.quantity || 0),
       0
     );
 
   const inventoryLowStockCount =
     inventory.filter(
       (item) =>
+        Number(item.quantity || 0) <=
         Number(
-          item.quantity || 0
-        ) <=
-        Number(
-          item.product
-            ?.minimumStock || 0
+          item.product?.minimumStock || 0
         )
     ).length;
 
@@ -1736,21 +1582,16 @@ function App() {
     ).size;
 
   // =========================================================
-  // DAY 16 TRANSFER FORM
+  // TRANSFER STOCK
   // =========================================================
 
-  function handleTransferFormChange(
-    event
-  ) {
-    const { name, value } =
-      event.target;
+  function handleTransferFormChange(event) {
+    const { name, value } = event.target;
 
-    setTransferForm(
-      (previous) => ({
-        ...previous,
-        [name]: value,
-      })
-    );
+    setTransferForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   }
 
   function resetTransferForm() {
@@ -1774,9 +1615,7 @@ function App() {
     resetTransferForm();
   }
 
-  async function handleTransferStock(
-    event
-  ) {
+  async function handleTransferStock(event) {
     event.preventDefault();
 
     setSavingTransfer(true);
@@ -1790,17 +1629,13 @@ function App() {
         );
       }
 
-      if (
-        !transferForm.fromLocationId
-      ) {
+      if (!transferForm.fromLocationId) {
         throw new Error(
           "Please select the source location."
         );
       }
 
-      if (
-        !transferForm.toLocationId
-      ) {
+      if (!transferForm.toLocationId) {
         throw new Error(
           "Please select the destination location."
         );
@@ -1817,44 +1652,36 @@ function App() {
 
       if (
         !transferForm.quantity ||
-        Number(
-          transferForm.quantity
-        ) <= 0
+        Number(transferForm.quantity) <= 0
       ) {
         throw new Error(
           "Transfer quantity must be greater than 0."
         );
       }
 
-      const response =
-        await fetch(
-          `${API_URL}/api/inventory/transfer`,
-          {
-            method: "POST",
-            headers: getHeaders(true),
-            body: JSON.stringify({
-              productId:
-                Number(
-                  transferForm.productId
-                ),
-              fromLocationId:
-                Number(
-                  transferForm.fromLocationId
-                ),
-              toLocationId:
-                Number(
-                  transferForm.toLocationId
-                ),
-              quantity:
-                Number(
-                  transferForm.quantity
-                ),
-            }),
-          }
-        );
+      const response = await fetch(
+        `${API_URL}/api/inventory/transfer`,
+        {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            productId: Number(
+              transferForm.productId
+            ),
+            fromLocationId: Number(
+              transferForm.fromLocationId
+            ),
+            toLocationId: Number(
+              transferForm.toLocationId
+            ),
+            quantity: Number(
+              transferForm.quantity
+            ),
+          }),
+        }
+      );
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
       if (
         !response.ok ||
@@ -1892,21 +1719,16 @@ function App() {
   }
 
   // =========================================================
-  // DAY 16 ADJUSTMENT FORM
+  // ADJUST STOCK
   // =========================================================
 
-  function handleAdjustmentFormChange(
-    event
-  ) {
-    const { name, value } =
-      event.target;
+  function handleAdjustmentFormChange(event) {
+    const { name, value } = event.target;
 
-    setAdjustmentForm(
-      (previous) => ({
-        ...previous,
-        [name]: value,
-      })
-    );
+    setAdjustmentForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
   }
 
   function resetAdjustmentForm() {
@@ -1929,9 +1751,7 @@ function App() {
     resetAdjustmentForm();
   }
 
-  async function handleAdjustStock(
-    event
-  ) {
+  async function handleAdjustStock(event) {
     event.preventDefault();
 
     setSavingAdjustment(true);
@@ -1962,31 +1782,26 @@ function App() {
         );
       }
 
-      const response =
-        await fetch(
-          `${API_URL}/api/inventory/adjust`,
-          {
-            method: "POST",
-            headers: getHeaders(true),
-            body: JSON.stringify({
-              productId:
-                Number(
-                  adjustmentForm.productId
-                ),
-              locationId:
-                Number(
-                  adjustmentForm.locationId
-                ),
-              adjustmentQuantity:
-                Number(
-                  adjustmentForm.adjustmentQuantity
-                ),
-            }),
-          }
-        );
+      const response = await fetch(
+        `${API_URL}/api/inventory/adjust`,
+        {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            productId: Number(
+              adjustmentForm.productId
+            ),
+            locationId: Number(
+              adjustmentForm.locationId
+            ),
+            adjustmentQuantity: Number(
+              adjustmentForm.adjustmentQuantity
+            ),
+          }),
+        }
+      );
 
-      const result =
-        await response.json();
+      const result = await response.json();
 
       if (
         !response.ok ||
@@ -2024,6 +1839,61 @@ function App() {
   }
 
   // =========================================================
+  // REPORT INVENTORY FILTER
+  // =========================================================
+
+  const filteredReportInventory = useMemo(() => {
+    const search =
+      reportInventorySearch
+        .toLowerCase()
+        .trim();
+
+    return reports.inventory.filter(
+      (item) => {
+        const matchesSearch =
+          !search ||
+          String(item.productName || "")
+            .toLowerCase()
+            .includes(search) ||
+          String(item.partNumber || "")
+            .toLowerCase()
+            .includes(search) ||
+          String(item.location || "")
+            .toLowerCase()
+            .includes(search);
+
+        const matchesLocation =
+          !reportLocationFilter ||
+          Number(item.locationId) ===
+            Number(reportLocationFilter);
+
+        const matchesCategory =
+          !reportCategoryFilter ||
+          String(item.category || "") ===
+            String(reportCategoryFilter);
+
+        const matchesStatus =
+          !reportStatusFilter ||
+          String(item.status || "") ===
+            String(reportStatusFilter);
+
+        return (
+          matchesSearch &&
+          matchesLocation &&
+          matchesCategory &&
+          matchesStatus
+        );
+      }
+    );
+  }, [
+    reports.inventory,
+    reportInventorySearch,
+    reportLocationFilter,
+    reportCategoryFilter,
+    reportStatusFilter,
+  ]);
+
+  // =========================================================
   // LOGIN SCREEN
   // =========================================================
 
@@ -2035,9 +1905,7 @@ function App() {
             SV
           </div>
 
-          <h1>
-            Sri Vengamamba
-          </h1>
+          <h1>Sri Vengamamba</h1>
 
           <p className="login-subtitle">
             Oils & Automobiles
@@ -2047,25 +1915,17 @@ function App() {
             Inventory Management System
           </p>
 
-          <form
-            onSubmit={handleLogin}
-          >
+          <form onSubmit={handleLogin}>
             <div className="form-group">
-              <label>
-                Email
-              </label>
+              <label>Email</label>
 
               <input
                 type="email"
-                value={
-                  loginForm.email
-                }
+                value={loginForm.email}
                 onChange={(event) =>
                   setLoginForm({
                     ...loginForm,
-                    email:
-                      event.target
-                        .value,
+                    email: event.target.value,
                   })
                 }
                 placeholder="Enter email"
@@ -2074,21 +1934,16 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>
-                Password
-              </label>
+              <label>Password</label>
 
               <input
                 type="password"
-                value={
-                  loginForm.password
-                }
+                value={loginForm.password}
                 onChange={(event) =>
                   setLoginForm({
                     ...loginForm,
                     password:
-                      event.target
-                        .value,
+                      event.target.value,
                   })
                 }
                 placeholder="Enter password"
@@ -2126,22 +1981,16 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Dashboard
-            </h2>
-
+            <h2>Dashboard</h2>
             <p>
-              Overview of Sri
-              Vengamamba inventory
+              Overview of Sri Vengamamba inventory
             </p>
           </div>
 
           <button
             className="secondary-button"
             onClick={async () => {
-              setDashboardLoading(
-                true
-              );
+              setDashboardLoading(true);
 
               await Promise.all([
                 fetchProducts(),
@@ -2151,9 +2000,7 @@ function App() {
                 fetchInventory(),
               ]);
 
-              setDashboardLoading(
-                false
-              );
+              setDashboardLoading(false);
             }}
           >
             {dashboardLoading
@@ -2195,9 +2042,7 @@ function App() {
             </span>
 
             <strong>
-              {
-                lowStockProducts.length
-              }
+              {lowStockProducts.length}
             </strong>
           </div>
 
@@ -2207,10 +2052,7 @@ function App() {
             </span>
 
             <strong>
-              ₹
-              {inventoryValue.toFixed(
-                2
-              )}
+              ₹{inventoryValue.toFixed(2)}
             </strong>
           </div>
         </div>
@@ -2218,138 +2060,99 @@ function App() {
         <div className="dashboard-grid">
           <section className="dashboard-section">
             <div className="section-header">
-              <h3>
-                Stock by Location
-              </h3>
+              <h3>Stock by Location</h3>
             </div>
 
             <div className="location-cards">
-              {locationStock.length ===
-              0 ? (
+              {locationStock.length === 0 ? (
                 <p className="empty-state">
                   No locations found.
                 </p>
               ) : (
-                locationStock.map(
-                  (location) => (
-                    <div
-                      className="location-card"
-                      key={
-                        location.id
-                      }
-                    >
-                      <h4>
-                        {
-                          location.name
-                        }
-                      </h4>
+                locationStock.map((location) => (
+                  <div
+                    className="location-card"
+                    key={location.id}
+                  >
+                    <h4>
+                      {location.name}
+                    </h4>
 
+                    {location.section && (
                       <p>
-                        {location.section
-                          ? `Section: ${location.section}`
-                          : ""}
+                        Section:{" "}
+                        {location.section}
                       </p>
+                    )}
 
+                    {location.rack && (
                       <p>
-                        {location.rack
-                          ? `Rack: ${location.rack}`
-                          : ""}
+                        Rack: {location.rack}
                       </p>
+                    )}
 
+                    {location.shelf && (
                       <p>
-                        {location.shelf
-                          ? `Shelf: ${location.shelf}`
-                          : ""}
+                        Shelf: {location.shelf}
                       </p>
+                    )}
 
-                      <strong>
-                        {
-                          location.stock
-                        }{" "}
-                        units
-                      </strong>
-                    </div>
-                  )
-                )
+                    <strong>
+                      {location.stock} units
+                    </strong>
+                  </div>
+                ))
               )}
             </div>
           </section>
 
           <section className="dashboard-section">
             <div className="section-header">
-              <h3>
-                Low Stock Products
-              </h3>
+              <h3>Low Stock Products</h3>
             </div>
 
-            {lowStockProducts.length ===
-            0 ? (
+            {lowStockProducts.length === 0 ? (
               <div className="empty-state">
-                No low-stock
-                products.
+                No low-stock products.
               </div>
             ) : (
               <div className="table-container">
                 <table>
                   <thead>
                     <tr>
-                      <th>
-                        Product
-                      </th>
-                      <th>
-                        Stock
-                      </th>
-                      <th>
-                        Minimum
-                      </th>
-                      <th>
-                        Category
-                      </th>
-                      <th>
-                        Brand
-                      </th>
+                      <th>Product</th>
+                      <th>Stock</th>
+                      <th>Minimum</th>
+                      <th>Category</th>
+                      <th>Brand</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {lowStockProducts.map(
                       (product) => (
-                        <tr
-                          key={
-                            product.id
-                          }
-                        >
+                        <tr key={product.id}>
                           <td>
-                            {
-                              product.name
-                            }
-                          </td>
-
-                          <td className="low-stock-number">
-                            {
-                              getProductStock(
-                                product
-                              )
-                            }
+                            {product.name}
                           </td>
 
                           <td>
-                            {
-                              product.minimumStock
-                            }
+                            {getProductStock(
+                              product
+                            )}
                           </td>
 
                           <td>
-                            {product
-                              .category
-                              ?.name ||
+                            {product.minimumStock}
+                          </td>
+
+                          <td>
+                            {product.category?.name ||
                               "N/A"}
                           </td>
 
                           <td>
-                            {product
-                              .brand
-                              ?.name ||
+                            {product.brand?.name ||
                               "N/A"}
                           </td>
                         </tr>
@@ -2365,21 +2168,15 @@ function App() {
         <section className="dashboard-section">
           <div className="section-header">
             <div>
-              <h3>
-                Products
-              </h3>
-
+              <h3>Products</h3>
               <p>
-                Search and filter
-                your products
+                Search and filter your products
               </p>
             </div>
 
             <button
               className="primary-button"
-              onClick={
-                handleAddProduct
-              }
+              onClick={handleAddProduct}
             >
               + Add Product
             </button>
@@ -2388,9 +2185,7 @@ function App() {
           <div className="filter-bar">
             <input
               type="text"
-              value={
-                productSearch
-              }
+              value={productSearch}
               onChange={(event) =>
                 setProductSearch(
                   event.target.value
@@ -2400,9 +2195,7 @@ function App() {
             />
 
             <select
-              value={
-                productCategoryFilter
-              }
+              value={productCategoryFilter}
               onChange={(event) =>
                 setProductCategoryFilter(
                   event.target.value
@@ -2413,28 +2206,18 @@ function App() {
                 All Categories
               </option>
 
-              {categories.map(
-                (category) => (
-                  <option
-                    key={
-                      category.id
-                    }
-                    value={
-                      category.id
-                    }
-                  >
-                    {
-                      category.name
-                    }
-                  </option>
-                )
-              )}
+              {categories.map((category) => (
+                <option
+                  key={category.id}
+                  value={category.id}
+                >
+                  {category.name}
+                </option>
+              ))}
             </select>
 
             <select
-              value={
-                productBrandFilter
-              }
+              value={productBrandFilter}
               onChange={(event) =>
                 setProductBrandFilter(
                   event.target.value
@@ -2445,16 +2228,14 @@ function App() {
                 All Brands
               </option>
 
-              {brands.map(
-                (brand) => (
-                  <option
-                    key={brand.id}
-                    value={brand.id}
-                  >
-                    {brand.name}
-                  </option>
-                )
-              )}
+              {brands.map((brand) => (
+                <option
+                  key={brand.id}
+                  value={brand.id}
+                >
+                  {brand.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -2462,136 +2243,79 @@ function App() {
             <table>
               <thead>
                 <tr>
-                  <th>
-                    Product
-                  </th>
-                  <th>
-                    Part Number
-                  </th>
-                  <th>
-                    Vehicle
-                  </th>
-                  <th>
-                    Category
-                  </th>
-                  <th>
-                    Brand
-                  </th>
-                  <th>
-                    MRP
-                  </th>
-                  <th>
-                    Selling Price
-                  </th>
-                  <th>
-                    Stock
-                  </th>
+                  <th>Product</th>
+                  <th>Part Number</th>
+                  <th>Vehicle</th>
+                  <th>Category</th>
+                  <th>Brand</th>
+                  <th>MRP</th>
+                  <th>Selling Price</th>
+                  <th>Stock</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredProducts.length ===
-                0 ? (
+                {filteredProducts.length === 0 ? (
                   <tr>
                     <td
                       colSpan="8"
                       className="empty-table"
                     >
-                      No products
-                      found.
+                      No products found.
                     </td>
                   </tr>
                 ) : (
                   filteredProducts.map(
-                    (product) => {
-                      const stock =
-                        getProductStock(
-                          product
-                        );
+                    (product) => (
+                      <tr key={product.id}>
+                        <td>
+                          <strong>
+                            {product.name}
+                          </strong>
+                        </td>
 
-                      const low =
-                        stock <=
-                        Number(
-                          product.minimumStock ||
-                            0
-                        );
+                        <td>
+                          {product.partNumber ||
+                            "-"}
+                        </td>
 
-                      return (
-                        <tr
-                          key={
-                            product.id
-                          }
-                        >
-                          <td>
-                            <strong>
-                              {
-                                product.name
-                              }
-                            </strong>
-                          </td>
+                        <td>
+                          {product.vehicleModel ||
+                            "-"}
+                        </td>
 
-                          <td>
-                            {
-                              product.partNumber ||
-                              "-"
-                            }
-                          </td>
+                        <td>
+                          {product.category?.name ||
+                            "N/A"}
+                        </td>
 
-                          <td>
-                            {
-                              product.vehicleModel ||
-                              "-"
-                            }
-                          </td>
+                        <td>
+                          {product.brand?.name ||
+                            "N/A"}
+                        </td>
 
-                          <td>
-                            {product
-                              .category
-                              ?.name ||
-                              "N/A"}
-                          </td>
+                        <td>
+                          ₹
+                          {Number(
+                            product.mrp || 0
+                          ).toFixed(2)}
+                        </td>
 
-                          <td>
-                            {product
-                              .brand
-                              ?.name ||
-                              "N/A"}
-                          </td>
+                        <td>
+                          ₹
+                          {Number(
+                            product.sellingPrice ||
+                              0
+                          ).toFixed(2)}
+                        </td>
 
-                          <td>
-                            ₹
-                            {Number(
-                              product.mrp ||
-                                0
-                            ).toFixed(
-                              2
-                            )}
-                          </td>
-
-                          <td>
-                            ₹
-                            {Number(
-                              product.sellingPrice ||
-                                0
-                            ).toFixed(
-                              2
-                            )}
-                          </td>
-
-                          <td>
-                            <span
-                              className={
-                                low
-                                  ? "stock-badge low"
-                                  : "stock-badge"
-                              }
-                            >
-                              {stock}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    }
+                        <td>
+                          {getProductStock(
+                            product
+                          )}
+                        </td>
+                      </tr>
+                    )
                   )
                 )}
               </tbody>
@@ -2604,31 +2328,22 @@ function App() {
             <div className="modal-card">
               <div className="modal-header">
                 <div>
-                  <h3>
-                    Add Product
-                  </h3>
-
+                  <h3>Add Product</h3>
                   <p>
-                    Add a new
-                    product to
-                    inventory
+                    Enter product information
                   </p>
                 </div>
 
                 <button
                   className="close-button"
-                  onClick={
-                    closeProductForm
-                  }
+                  onClick={closeProductForm}
                 >
                   ×
                 </button>
               </div>
 
               <form
-                onSubmit={
-                  handleSaveProduct
-                }
+                onSubmit={handleSaveProduct}
               >
                 <div className="form-grid">
                   <div className="form-group">
@@ -2644,7 +2359,6 @@ function App() {
                       onChange={
                         handleProductFormChange
                       }
-                      placeholder="Servo 4T Engine Oil"
                       required
                     />
                   </div>
@@ -2662,7 +2376,6 @@ function App() {
                       onChange={
                         handleProductFormChange
                       }
-                      placeholder="SERVO-4T-001"
                       required
                     />
                   </div>
@@ -2680,64 +2393,6 @@ function App() {
                       onChange={
                         handleProductFormChange
                       }
-                      placeholder="Honda, Bajaj..."
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>
-                      MRP *
-                    </label>
-
-                    <input
-                      type="number"
-                      min="0"
-                      name="mrp"
-                      value={
-                        productForm.mrp
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>
-                      Selling Price *
-                    </label>
-
-                    <input
-                      type="number"
-                      min="0"
-                      name="sellingPrice"
-                      value={
-                        productForm.sellingPrice
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>
-                      Minimum Stock
-                    </label>
-
-                    <input
-                      type="number"
-                      min="0"
-                      name="minimumStock"
-                      value={
-                        productForm.minimumStock
-                      }
-                      onChange={
-                        handleProductFormChange
-                      }
-                      placeholder="10"
                     />
                   </div>
 
@@ -2770,9 +2425,7 @@ function App() {
                               category.id
                             }
                           >
-                            {
-                              category.name
-                            }
+                            {category.name}
                           </option>
                         )
                       )}
@@ -2780,9 +2433,7 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Brand
-                    </label>
+                    <label>Brand</label>
 
                     <select
                       name="brandId"
@@ -2797,23 +2448,71 @@ function App() {
                         Select brand
                       </option>
 
-                      {brands.map(
-                        (brand) => (
-                          <option
-                            key={
-                              brand.id
-                            }
-                            value={
-                              brand.id
-                            }
-                          >
-                            {
-                              brand.name
-                            }
-                          </option>
-                        )
-                      )}
+                      {brands.map((brand) => (
+                        <option
+                          key={brand.id}
+                          value={brand.id}
+                        >
+                          {brand.name}
+                        </option>
+                      ))}
                     </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>MRP *</label>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="mrp"
+                      value={
+                        productForm.mrp
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Selling Price *
+                    </label>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="sellingPrice"
+                      value={
+                        productForm.sellingPrice
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Minimum Stock
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      name="minimumStock"
+                      value={
+                        productForm.minimumStock
+                      }
+                      onChange={
+                        handleProductFormChange
+                      }
+                    />
                   </div>
 
                   <div className="form-group full-span">
@@ -2836,9 +2535,7 @@ function App() {
 
                 {productFormError && (
                   <div className="alert alert-error">
-                    {
-                      productFormError
-                    }
+                    {productFormError}
                   </div>
                 )}
 
@@ -2856,9 +2553,7 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={
-                      savingProduct
-                    }
+                    disabled={savingProduct}
                   >
                     {savingProduct
                       ? "Saving..."
@@ -2882,21 +2577,15 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Purchase Management
-            </h2>
-
+            <h2>Purchase Management</h2>
             <p>
-              Record purchases and
-              increase inventory
+              Record purchases and increase inventory
             </p>
           </div>
 
           <button
             className="secondary-button"
-            onClick={
-              fetchPurchases
-            }
+            onClick={fetchPurchases}
           >
             ↻ Refresh
           </button>
@@ -2917,29 +2606,20 @@ function App() {
         <section className="transaction-card">
           <div className="section-header">
             <div>
-              <h3>
-                Create Purchase
-              </h3>
-
+              <h3>Create Purchase</h3>
               <p>
-                Stock will
-                automatically be
-                added to the
-                selected location.
+                Purchased stock will be added to
+                the selected location.
               </p>
             </div>
           </div>
 
           <form
-            onSubmit={
-              handleSavePurchase
-            }
+            onSubmit={handleSavePurchase}
           >
             <div className="form-grid">
               <div className="form-group">
-                <label>
-                  Supplier *
-                </label>
+                <label>Supplier *</label>
 
                 <select
                   name="supplierId"
@@ -2958,16 +2638,10 @@ function App() {
                   {suppliers.map(
                     (supplier) => (
                       <option
-                        key={
-                          supplier.id
-                        }
-                        value={
-                          supplier.id
-                        }
+                        key={supplier.id}
+                        value={supplier.id}
                       >
-                        {
-                          supplier.name
-                        }
+                        {supplier.name}
                       </option>
                     )
                   )}
@@ -2987,14 +2661,13 @@ function App() {
                   onChange={
                     handlePurchaseFormChange
                   }
+                  placeholder="INV-001"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>
-                  Purchase Date *
-                </label>
+                <label>Purchase Date</label>
 
                 <input
                   type="date"
@@ -3005,14 +2678,11 @@ function App() {
                   onChange={
                     handlePurchaseFormChange
                   }
-                  required
                 />
               </div>
 
               <div className="form-group">
-                <label>
-                  Product *
-                </label>
+                <label>Product *</label>
 
                 <select
                   name="productId"
@@ -3028,33 +2698,19 @@ function App() {
                     Select product
                   </option>
 
-                  {products.map(
-                    (product) => (
-                      <option
-                        key={
-                          product.id
-                        }
-                        value={
-                          product.id
-                        }
-                      >
-                        {
-                          product.name
-                        }{" "}
-                        -{" "}
-                        {
-                          product.partNumber
-                        }
-                      </option>
-                    )
-                  )}
+                  {products.map((product) => (
+                    <option
+                      key={product.id}
+                      value={product.id}
+                    >
+                      {product.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>
-                  Location *
-                </label>
+                <label>Location *</label>
 
                 <select
                   name="locationId"
@@ -3073,16 +2729,10 @@ function App() {
                   {locations.map(
                     (location) => (
                       <option
-                        key={
-                          location.id
-                        }
-                        value={
-                          location.id
-                        }
+                        key={location.id}
+                        value={location.id}
                       >
-                        {
-                          location.name
-                        }
+                        {location.name}
                       </option>
                     )
                   )}
@@ -3090,9 +2740,7 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>
-                  Quantity *
-                </label>
+                <label>Quantity *</label>
 
                 <input
                   type="number"
@@ -3143,9 +2791,7 @@ function App() {
               <button
                 type="submit"
                 className="primary-button"
-                disabled={
-                  savingPurchase
-                }
+                disabled={savingPurchase}
               >
                 {savingPurchase
                   ? "Saving..."
@@ -3157,79 +2803,66 @@ function App() {
 
         <section className="history-section">
           <div className="section-header">
-            <h3>
-              Purchase History
-            </h3>
+            <div>
+              <h3>Purchase History</h3>
+              <p>
+                {purchases.length} purchase
+                record(s)
+              </p>
+            </div>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>
-                    ID
-                  </th>
-                  <th>
-                    Invoice
-                  </th>
-                  <th>
-                    Supplier
-                  </th>
-                  <th>
-                    Date
-                  </th>
-                  <th>
-                    Total
-                  </th>
+                  <th>ID</th>
+                  <th>Invoice</th>
+                  <th>Supplier</th>
+                  <th>Date</th>
+                  <th>Total</th>
                 </tr>
               </thead>
 
               <tbody>
-                {purchases.length ===
-                0 ? (
+                {purchases.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
                       className="empty-table"
                     >
-                      No purchase
-                      records found.
+                      No purchase records
+                      found.
                     </td>
                   </tr>
                 ) : (
                   purchases.map(
                     (purchase) => (
-                      <tr
-                        key={
-                          purchase.id
-                        }
-                      >
+                      <tr key={purchase.id}>
                         <td>
-                          {
-                            purchase.id
-                          }
+                          {purchase.id}
                         </td>
 
                         <td>
-                          {
-                            purchase.invoiceNumber ||
-                            "-"
-                          }
+                          {purchase.invoiceNumber ||
+                            "-"}
                         </td>
 
                         <td>
-                          {
-                            purchase
-                              .supplier
-                              ?.name ||
-                            purchase.supplierId
-                          }
+                          {purchase.supplier
+                            ?.name ||
+                            purchase.supplierId ||
+                            "-"}
                         </td>
 
                         <td>
                           {purchase.purchaseDate
                             ? new Date(
                                 purchase.purchaseDate
+                              ).toLocaleDateString()
+                            : purchase.createdAt
+                            ? new Date(
+                                purchase.createdAt
                               ).toLocaleDateString()
                             : "-"}
                         </td>
@@ -3239,9 +2872,7 @@ function App() {
                           {Number(
                             purchase.totalAmount ||
                               0
-                          ).toFixed(
-                            2
-                          )}
+                          ).toFixed(2)}
                         </td>
                       </tr>
                     )
@@ -3273,14 +2904,10 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Sales Management
-            </h2>
-
+            <h2>Sales Management</h2>
             <p>
-              Record sales and
-              automatically reduce
-              inventory
+              Record sales and automatically
+              reduce inventory
             </p>
           </div>
 
@@ -3306,25 +2933,24 @@ function App() {
 
         <section className="transaction-card">
           <div className="section-header">
-            <h3>
-              Create Sale
-            </h3>
+            <div>
+              <h3>Create Sale</h3>
+              <p>
+                Stock will automatically be
+                reduced from the selected
+                location.
+              </p>
+            </div>
           </div>
 
-          <form
-            onSubmit={handleSaveSale}
-          >
+          <form onSubmit={handleSaveSale}>
             <div className="form-grid">
               <div className="form-group">
-                <label>
-                  Customer
-                </label>
+                <label>Customer</label>
 
                 <select
                   name="customerId"
-                  value={
-                    saleForm.customerId
-                  }
+                  value={saleForm.customerId}
                   onChange={
                     handleSaleFormChange
                   }
@@ -3336,16 +2962,10 @@ function App() {
                   {customers.map(
                     (customer) => (
                       <option
-                        key={
-                          customer.id
-                        }
-                        value={
-                          customer.id
-                        }
+                        key={customer.id}
+                        value={customer.id}
                       >
-                        {
-                          customer.name
-                        }
+                        {customer.name}
                       </option>
                     )
                   )}
@@ -3365,14 +2985,13 @@ function App() {
                   onChange={
                     handleSaleFormChange
                   }
+                  placeholder="SALE-001"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>
-                  Product *
-                </label>
+                <label>Product *</label>
 
                 <select
                   name="productId"
@@ -3388,29 +3007,19 @@ function App() {
                     Select product
                   </option>
 
-                  {products.map(
-                    (product) => (
-                      <option
-                        key={
-                          product.id
-                        }
-                        value={
-                          product.id
-                        }
-                      >
-                        {
-                          product.name
-                        }
-                      </option>
-                    )
-                  )}
+                  {products.map((product) => (
+                    <option
+                      key={product.id}
+                      value={product.id}
+                    >
+                      {product.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>
-                  Location *
-                </label>
+                <label>Location *</label>
 
                 <select
                   name="locationId"
@@ -3429,16 +3038,10 @@ function App() {
                   {locations.map(
                     (location) => (
                       <option
-                        key={
-                          location.id
-                        }
-                        value={
-                          location.id
-                        }
+                        key={location.id}
+                        value={location.id}
                       >
-                        {
-                          location.name
-                        }
+                        {location.name}
                       </option>
                     )
                   )}
@@ -3446,9 +3049,7 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>
-                  Quantity *
-                </label>
+                <label>Quantity *</label>
 
                 <input
                   type="number"
@@ -3463,14 +3064,11 @@ function App() {
                   required
                 />
 
-                {selectedStock !==
-                  null && (
+                {selectedStock !== null && (
                   <small>
                     Available stock:{" "}
                     <strong>
-                      {
-                        selectedStock
-                      }
+                      {selectedStock}
                     </strong>
                   </small>
                 )}
@@ -3501,9 +3099,7 @@ function App() {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={
-                  resetSaleForm
-                }
+                onClick={resetSaleForm}
               >
                 Clear
               </button>
@@ -3511,9 +3107,7 @@ function App() {
               <button
                 type="submit"
                 className="primary-button"
-                disabled={
-                  savingSale
-                }
+                disabled={savingSale}
               >
                 {savingSale
                   ? "Saving..."
@@ -3525,94 +3119,68 @@ function App() {
 
         <section className="history-section">
           <div className="section-header">
-            <h3>
-              Sales History
-            </h3>
+            <div>
+              <h3>Sales History</h3>
+              <p>
+                {sales.length} sales record(s)
+              </p>
+            </div>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>
-                    ID
-                  </th>
-                  <th>
-                    Invoice
-                  </th>
-                  <th>
-                    Customer
-                  </th>
-                  <th>
-                    Date
-                  </th>
-                  <th>
-                    Total
-                  </th>
+                  <th>ID</th>
+                  <th>Invoice</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Total</th>
                 </tr>
               </thead>
 
               <tbody>
-                {sales.length ===
-                0 ? (
+                {sales.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
                       className="empty-table"
                     >
-                      No sales
-                      records found.
+                      No sales records found.
                     </td>
                   </tr>
                 ) : (
-                  sales.map(
-                    (sale) => (
-                      <tr
-                        key={
-                          sale.id
-                        }
-                      >
-                        <td>
-                          {
-                            sale.id
-                          }
-                        </td>
+                  sales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td>{sale.id}</td>
 
-                        <td>
-                          {
-                            sale.invoiceNumber ||
-                            "-"
-                          }
-                        </td>
+                      <td>
+                        {sale.invoiceNumber ||
+                          "-"}
+                      </td>
 
-                        <td>
-                          {
-                            sale.customer
-                              ?.name ||
-                            "Walk-in"
-                          }
-                        </td>
+                      <td>
+                        {sale.customer?.name ||
+                          "Walk-in"}
+                      </td>
 
-                        <td>
-                          {sale.createdAt
-                            ? new Date(
-                                sale.createdAt
-                              ).toLocaleDateString()
-                            : "-"}
-                        </td>
+                      <td>
+                        {sale.createdAt
+                          ? new Date(
+                              sale.createdAt
+                            ).toLocaleDateString()
+                          : "-"}
+                      </td>
 
-                        <td>
-                          ₹
-                          {Number(
-                            sale.totalAmount ||
-                              0
-                          ).toFixed(
-                            2
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  )
+                      <td>
+                        ₹
+                        {Number(
+                          sale.totalAmount ||
+                            0
+                        ).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -3631,30 +3199,24 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Supplier Management
-            </h2>
-
+            <h2>Supplier Management</h2>
             <p>
-              Manage suppliers
+              Manage suppliers for your
+              automobile shop
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={
-                fetchSuppliers
-              }
+              onClick={fetchSuppliers}
             >
               ↻ Refresh
             </button>
 
             <button
               className="primary-button"
-              onClick={
-                handleAddSupplier
-              }
+              onClick={handleAddSupplier}
             >
               + Add Supplier
             </button>
@@ -3663,105 +3225,88 @@ function App() {
 
         {supplierFormSuccess && (
           <div className="alert alert-success">
-            {
-              supplierFormSuccess
-            }
+            {supplierFormSuccess}
           </div>
         )}
 
         {supplierFormError && (
           <div className="alert alert-error">
-            {
-              supplierFormError
-            }
+            {supplierFormError}
           </div>
         )}
 
         <section className="management-card">
           <div className="section-header">
-            <h3>
-              Suppliers
-            </h3>
+            <div>
+              <h3>Suppliers</h3>
+              <p>
+                {suppliers.length} supplier(s)
+                registered
+              </p>
+            </div>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>
-                    ID
-                  </th>
-                  <th>
-                    Name
-                  </th>
-                  <th>
-                    Phone
-                  </th>
-                  <th>
-                    Email
-                  </th>
-                  <th>
-                    Address
-                  </th>
-                  <th>
-                    Actions
-                  </th>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Purchases</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {suppliers.length ===
-                0 ? (
+                {suppliers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="empty-table"
                     >
-                      No suppliers
-                      found.
+                      No suppliers found.
                     </td>
                   </tr>
                 ) : (
                   suppliers.map(
                     (supplier) => (
-                      <tr
-                        key={
-                          supplier.id
-                        }
-                      >
+                      <tr key={supplier.id}>
                         <td>
-                          {
-                            supplier.id
-                          }
+                          {supplier.id}
                         </td>
 
                         <td>
                           <strong>
-                            {
-                              supplier.name
-                            }
+                            {supplier.name}
                           </strong>
                         </td>
 
                         <td>
-                          {
-                            supplier.phone ||
-                            "-"
-                          }
+                          {supplier.phone ||
+                            "-"}
                         </td>
 
                         <td>
-                          {
-                            supplier.email ||
-                            "-"
-                          }
+                          {supplier.email ||
+                            "-"}
                         </td>
 
                         <td>
-                          {
-                            supplier.address ||
-                            "-"
-                          }
+                          {supplier.address ||
+                            "-"}
+                        </td>
+
+                        <td>
+                          {Array.isArray(
+                            supplier.purchases
+                          )
+                            ? supplier
+                                .purchases
+                                .length
+                            : 0}
                         </td>
 
                         <td>
@@ -3802,12 +3347,13 @@ function App() {
           <div className="modal-overlay">
             <div className="modal-card">
               <div className="modal-header">
-                <h3>
-                  {editingSupplierId !==
-                  null
-                    ? "Edit Supplier"
-                    : "Add Supplier"}
-                </h3>
+                <div>
+                  <h3>
+                    {editingSupplierId !== null
+                      ? "Edit Supplier"
+                      : "Add Supplier"}
+                  </h3>
+                </div>
 
                 <button
                   className="close-button"
@@ -3843,9 +3389,7 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Phone
-                    </label>
+                    <label>Phone</label>
 
                     <input
                       name="phone"
@@ -3859,9 +3403,7 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Email
-                    </label>
+                    <label>Email</label>
 
                     <input
                       type="email"
@@ -3876,9 +3418,7 @@ function App() {
                   </div>
 
                   <div className="form-group full-span">
-                    <label>
-                      Address
-                    </label>
+                    <label>Address</label>
 
                     <textarea
                       name="address"
@@ -3895,9 +3435,7 @@ function App() {
 
                 {supplierFormError && (
                   <div className="alert alert-error">
-                    {
-                      supplierFormError
-                    }
+                    {supplierFormError}
                   </div>
                 )}
 
@@ -3915,9 +3453,7 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={
-                      savingSupplier
-                    }
+                    disabled={savingSupplier}
                   >
                     {savingSupplier
                       ? "Saving..."
@@ -3944,30 +3480,24 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Customer Management
-            </h2>
-
+            <h2>Customer Management</h2>
             <p>
-              Manage customers
+              Manage customers for your
+              automobile shop
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={
-                fetchCustomers
-              }
+              onClick={fetchCustomers}
             >
               ↻ Refresh
             </button>
 
             <button
               className="primary-button"
-              onClick={
-                handleAddCustomer
-              }
+              onClick={handleAddCustomer}
             >
               + Add Customer
             </button>
@@ -3976,105 +3506,87 @@ function App() {
 
         {customerFormSuccess && (
           <div className="alert alert-success">
-            {
-              customerFormSuccess
-            }
+            {customerFormSuccess}
           </div>
         )}
 
         {customerFormError && (
           <div className="alert alert-error">
-            {
-              customerFormError
-            }
+            {customerFormError}
           </div>
         )}
 
         <section className="management-card">
           <div className="section-header">
-            <h3>
-              Customers
-            </h3>
+            <div>
+              <h3>Customers</h3>
+              <p>
+                {customers.length} customer(s)
+                registered
+              </p>
+            </div>
           </div>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>
-                    ID
-                  </th>
-                  <th>
-                    Name
-                  </th>
-                  <th>
-                    Phone
-                  </th>
-                  <th>
-                    Email
-                  </th>
-                  <th>
-                    Address
-                  </th>
-                  <th>
-                    Actions
-                  </th>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Sales</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {customers.length ===
-                0 ? (
+                {customers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="empty-table"
                     >
-                      No customers
-                      found.
+                      No customers found.
                     </td>
                   </tr>
                 ) : (
                   customers.map(
                     (customer) => (
-                      <tr
-                        key={
-                          customer.id
-                        }
-                      >
+                      <tr key={customer.id}>
                         <td>
-                          {
-                            customer.id
-                          }
+                          {customer.id}
                         </td>
 
                         <td>
                           <strong>
-                            {
-                              customer.name
-                            }
+                            {customer.name}
                           </strong>
                         </td>
 
                         <td>
-                          {
-                            customer.phone ||
-                            "-"
-                          }
+                          {customer.phone ||
+                            "-"}
                         </td>
 
                         <td>
-                          {
-                            customer.email ||
-                            "-"
-                          }
+                          {customer.email ||
+                            "-"}
                         </td>
 
                         <td>
-                          {
-                            customer.address ||
-                            "-"
-                          }
+                          {customer.address ||
+                            "-"}
+                        </td>
+
+                        <td>
+                          {Array.isArray(
+                            customer.sales
+                          )
+                            ? customer.sales
+                                .length
+                            : 0}
                         </td>
 
                         <td>
@@ -4115,12 +3627,13 @@ function App() {
           <div className="modal-overlay">
             <div className="modal-card">
               <div className="modal-header">
-                <h3>
-                  {editingCustomerId !==
-                  null
-                    ? "Edit Customer"
-                    : "Add Customer"}
-                </h3>
+                <div>
+                  <h3>
+                    {editingCustomerId !== null
+                      ? "Edit Customer"
+                      : "Add Customer"}
+                  </h3>
+                </div>
 
                 <button
                   className="close-button"
@@ -4156,9 +3669,7 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Phone
-                    </label>
+                    <label>Phone</label>
 
                     <input
                       name="phone"
@@ -4172,9 +3683,7 @@ function App() {
                   </div>
 
                   <div className="form-group">
-                    <label>
-                      Email
-                    </label>
+                    <label>Email</label>
 
                     <input
                       type="email"
@@ -4189,9 +3698,7 @@ function App() {
                   </div>
 
                   <div className="form-group full-span">
-                    <label>
-                      Address
-                    </label>
+                    <label>Address</label>
 
                     <textarea
                       name="address"
@@ -4208,9 +3715,7 @@ function App() {
 
                 {customerFormError && (
                   <div className="alert alert-error">
-                    {
-                      customerFormError
-                    }
+                    {customerFormError}
                   </div>
                 )}
 
@@ -4228,9 +3733,7 @@ function App() {
                   <button
                     type="submit"
                     className="primary-button"
-                    disabled={
-                      savingCustomer
-                    }
+                    disabled={savingCustomer}
                   >
                     {savingCustomer
                       ? "Saving..."
@@ -4249,7 +3752,7 @@ function App() {
   }
 
   // =========================================================
-  // DAY 16 - INVENTORY PAGE
+  // INVENTORY PAGE - DAY 16
   // =========================================================
 
   function InventoryPage() {
@@ -4257,26 +3760,18 @@ function App() {
       <div>
         <div className="page-heading">
           <div>
-            <h2>
-              Inventory Control
-            </h2>
-
+            <h2>Inventory Control</h2>
             <p>
-              Search, monitor,
-              transfer and adjust
-              stock
+              Search, monitor, transfer and
+              adjust stock
             </p>
           </div>
 
           <div className="heading-actions">
             <button
               className="secondary-button"
-              onClick={
-                fetchInventory
-              }
-              disabled={
-                inventoryLoading
-              }
+              onClick={fetchInventory}
+              disabled={inventoryLoading}
             >
               {inventoryLoading
                 ? "Refreshing..."
@@ -4285,18 +3780,14 @@ function App() {
 
             <button
               className="primary-button"
-              onClick={
-                openTransferForm
-              }
+              onClick={openTransferForm}
             >
               ⇄ Transfer Stock
             </button>
 
             <button
               className="primary-button"
-              onClick={
-                openAdjustmentForm
-              }
+              onClick={openAdjustmentForm}
             >
               ± Adjust Stock
             </button>
@@ -4305,17 +3796,13 @@ function App() {
 
         {inventoryActionSuccess && (
           <div className="alert alert-success">
-            {
-              inventoryActionSuccess
-            }
+            {inventoryActionSuccess}
           </div>
         )}
 
         {inventoryActionError && (
           <div className="alert alert-error">
-            {
-              inventoryActionError
-            }
+            {inventoryActionError}
           </div>
         )}
 
@@ -4325,111 +3812,67 @@ function App() {
           </div>
         )}
 
-        {/* SUMMARY */}
-
         <div className="inventory-summary-grid">
           <div className="inventory-summary-card">
-            <span>
-              Total Stock
-            </span>
-
+            <span>Total Stock</span>
             <strong>
-              {
-                inventoryTotalStock
-              }
+              {inventoryTotalStock}
             </strong>
-
             <small>
-              Units across all
-              locations
+              Units across all locations
             </small>
           </div>
 
           <div className="inventory-summary-card">
-            <span>
-              Low Stock Records
-            </span>
-
+            <span>Low Stock Records</span>
             <strong className="inventory-danger">
-              {
-                inventoryLowStockCount
-              }
+              {inventoryLowStockCount}
             </strong>
-
             <small>
-              At or below minimum
-              stock
+              At or below minimum stock
             </small>
           </div>
 
           <div className="inventory-summary-card">
-            <span>
-              Locations Used
-            </span>
-
+            <span>Locations Used</span>
             <strong>
-              {
-                inventoryLocationsUsed
-              }
+              {inventoryLocationsUsed}
             </strong>
-
             <small>
-              Locations with
-              inventory
+              Locations with inventory
             </small>
           </div>
 
           <div className="inventory-summary-card">
-            <span>
-              Displayed Records
-            </span>
-
+            <span>Displayed Records</span>
             <strong>
-              {
-                filteredInventory.length
-              }
+              {filteredInventory.length}
             </strong>
-
             <small>
               After filters
             </small>
           </div>
         </div>
 
-        {/* FILTERS */}
-
         <section className="inventory-filter-card">
           <div className="section-header">
             <div>
               <h3>
-                Search & Filter
-                Inventory
+                Search & Filter Inventory
               </h3>
-
-              <p>
-                Find stock by
-                product, part
-                number or
-                location
-              </p>
             </div>
           </div>
 
           <div className="inventory-filter-grid">
             <div className="form-group">
-              <label>
-                Search
-              </label>
+              <label>Search</label>
 
               <input
                 type="text"
-                value={
-                  inventorySearch
-                }
+                value={inventorySearch}
                 onChange={(event) =>
                   setInventorySearch(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 placeholder="Product, part number, vehicle, location..."
@@ -4437,9 +3880,7 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>
-                Location
-              </label>
+              <label>Location</label>
 
               <select
                 value={
@@ -4447,8 +3888,7 @@ function App() {
                 }
                 onChange={(event) =>
                   setInventoryLocationFilter(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
               >
@@ -4459,16 +3899,10 @@ function App() {
                 {locations.map(
                   (location) => (
                     <option
-                      key={
-                        location.id
-                      }
-                      value={
-                        location.id
-                      }
+                      key={location.id}
+                      value={location.id}
                     >
-                      {
-                        location.name
-                      }
+                      {location.name}
                     </option>
                   )
                 )}
@@ -4484,8 +3918,7 @@ function App() {
                   }
                   onChange={(event) =>
                     setInventoryLowStockOnly(
-                      event.target
-                        .checked
+                      event.target.checked
                     )
                   }
                 />
@@ -4496,277 +3929,179 @@ function App() {
               </label>
             </div>
 
-            <div className="inventory-filter-actions">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setInventorySearch(
-                    ""
-                  );
-
-                  setInventoryLocationFilter(
-                    ""
-                  );
-
-                  setInventoryLowStockOnly(
-                    false
-                  );
-                }}
-              >
-                Clear Filters
-              </button>
-            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setInventorySearch("");
+                setInventoryLocationFilter("");
+                setInventoryLowStockOnly(false);
+              }}
+            >
+              Clear Filters
+            </button>
           </div>
         </section>
-
-        {/* CURRENT STOCK */}
 
         <section className="management-card">
           <div className="section-header">
             <div>
-              <h3>
-                Current Stock
-              </h3>
-
+              <h3>Current Stock</h3>
               <p>
-                {
-                  filteredInventory.length
-                }{" "}
-                inventory
-                record(s)
+                {filteredInventory.length}{" "}
+                inventory record(s)
               </p>
             </div>
           </div>
 
-          {inventoryLoading &&
-          inventory.length === 0 ? (
-            <div className="empty-state">
-              Loading inventory...
-            </div>
-          ) : (
-            <div className="table-container">
-              <table>
-                <thead>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Part Number</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th>Rack</th>
+                  <th>Shelf</th>
+                  <th>Section</th>
+                  <th>Stock</th>
+                  <th>Minimum</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredInventory.length ===
+                0 ? (
                   <tr>
-                    <th>
-                      Product
-                    </th>
-
-                    <th>
-                      Part Number
-                    </th>
-
-                    <th>
-                      Category
-                    </th>
-
-                    <th>
-                      Location
-                    </th>
-
-                    <th>
-                      Rack
-                    </th>
-
-                    <th>
-                      Shelf
-                    </th>
-
-                    <th>
-                      Section
-                    </th>
-
-                    <th>
-                      Stock
-                    </th>
-
-                    <th>
-                      Minimum
-                    </th>
-
-                    <th>
-                      Status
-                    </th>
+                    <td
+                      colSpan="10"
+                      className="empty-table"
+                    >
+                      No inventory records
+                      found.
+                    </td>
                   </tr>
-                </thead>
-
-                <tbody>
-                  {filteredInventory.length ===
-                  0 ? (
-                    <tr>
-                      <td
-                        colSpan="10"
-                        className="empty-table"
-                      >
-                        No inventory
-                        records match
-                        your filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredInventory.map(
-                      (item) => {
-                        const quantity =
-                          Number(
-                            item.quantity ||
-                              0
-                          );
-
-                        const minimum =
-                          Number(
-                            item
-                              .product
-                              ?.minimumStock ||
-                              0
-                          );
-
-                        const isLow =
-                          quantity <=
-                          minimum;
-
-                        return (
-                          <tr
-                            key={
-                              item.id
-                            }
-                          >
-                            <td>
-                              <strong>
-                                {
-                                  item
-                                    .product
-                                    ?.name
-                                }
-                              </strong>
-
-                              {item
-                                .product
-                                ?.vehicleModel && (
-                                <div className="table-subtext">
-                                  {
-                                    item
-                                      .product
-                                      .vehicleModel
-                                  }
-                                </div>
-                              )}
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .product
-                                  ?.partNumber ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .product
-                                  ?.category
-                                  ?.name ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .location
-                                  ?.name ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .location
-                                  ?.rack ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .location
-                                  ?.shelf ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              {
-                                item
-                                  .location
-                                  ?.section ||
-                                "-"
-                              }
-                            </td>
-
-                            <td>
-                              <span
-                                className={
-                                  isLow
-                                    ? "stock-badge low"
-                                    : "stock-badge"
-                                }
-                              >
-                                {
-                                  quantity
-                                }
-                              </span>
-                            </td>
-
-                            <td>
-                              {
-                                minimum
-                              }
-                            </td>
-
-                            <td>
-                              <span
-                                className={
-                                  isLow
-                                    ? "inventory-status low"
-                                    : "inventory-status normal"
-                                }
-                              >
-                                {isLow
-                                  ? "LOW STOCK"
-                                  : "IN STOCK"}
-                              </span>
-                            </td>
-                          </tr>
+                ) : (
+                  filteredInventory.map(
+                    (item) => {
+                      const quantity =
+                        Number(
+                          item.quantity || 0
                         );
-                      }
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
 
-        {/* TRANSFER MODAL */}
+                      const minimum =
+                        Number(
+                          item.product
+                            ?.minimumStock ||
+                            0
+                        );
+
+                      const isLow =
+                        quantity <=
+                        minimum;
+
+                      return (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>
+                              {
+                                item.product
+                                  ?.name
+                              }
+                            </strong>
+                          </td>
+
+                          <td>
+                            {
+                              item.product
+                                ?.partNumber ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              item.product
+                                ?.category
+                                ?.name ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              item.location
+                                ?.name ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              item.location
+                                ?.rack ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              item.location
+                                ?.shelf ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              item.location
+                                ?.section ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {quantity}
+                          </td>
+
+                          <td>
+                            {minimum}
+                          </td>
+
+                          <td>
+                            <span
+                              className={
+                                isLow
+                                  ? "inventory-status low"
+                                  : "inventory-status normal"
+                              }
+                            >
+                              {isLow
+                                ? "LOW STOCK"
+                                : "IN STOCK"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         {showTransferForm && (
           <div className="modal-overlay">
-            <div className="modal-card inventory-modal">
+            <div className="modal-card">
               <div className="modal-header">
                 <div>
-                  <h3>
-                    Transfer Stock
-                  </h3>
-
+                  <h3>Transfer Stock</h3>
                   <p>
-                    Move stock from
-                    one location to
-                    another.
+                    Move stock from one
+                    location to another.
                   </p>
                 </div>
 
@@ -4808,21 +4143,10 @@ function App() {
                       {products.map(
                         (product) => (
                           <option
-                            key={
-                              product.id
-                            }
-                            value={
-                              product.id
-                            }
+                            key={product.id}
+                            value={product.id}
                           >
-                            {
-                              product.name
-                            }{" "}
-                            -{" "}
-                            {
-                              product.partNumber ||
-                              "No Part Number"
-                            }
+                            {product.name}
                           </option>
                         )
                       )}
@@ -4851,16 +4175,10 @@ function App() {
                       {locations.map(
                         (location) => (
                           <option
-                            key={
-                              location.id
-                            }
-                            value={
-                              location.id
-                            }
+                            key={location.id}
+                            value={location.id}
                           >
-                            {
-                              location.name
-                            }
+                            {location.name}
                           </option>
                         )
                       )}
@@ -4889,16 +4207,10 @@ function App() {
                       {locations.map(
                         (location) => (
                           <option
-                            key={
-                              location.id
-                            }
-                            value={
-                              location.id
-                            }
+                            key={location.id}
+                            value={location.id}
                           >
-                            {
-                              location.name
-                            }
+                            {location.name}
                           </option>
                         )
                       )}
@@ -4913,7 +4225,6 @@ function App() {
                     <input
                       type="number"
                       min="1"
-                      step="1"
                       name="quantity"
                       value={
                         transferForm.quantity
@@ -4925,14 +4236,6 @@ function App() {
                     />
                   </div>
                 </div>
-
-                {inventoryActionError && (
-                  <div className="alert alert-error">
-                    {
-                      inventoryActionError
-                    }
-                  </div>
-                )}
 
                 <div className="modal-actions">
                   <button
@@ -4962,22 +4265,16 @@ function App() {
           </div>
         )}
 
-        {/* ADJUSTMENT MODAL */}
-
         {showAdjustmentForm && (
           <div className="modal-overlay">
-            <div className="modal-card inventory-modal">
+            <div className="modal-card">
               <div className="modal-header">
                 <div>
-                  <h3>
-                    Adjust Stock
-                  </h3>
-
+                  <h3>Adjust Stock</h3>
                   <p>
-                    Positive number
-                    adds stock.
-                    Negative number
-                    removes stock.
+                    Use a positive number to
+                    add stock and a negative
+                    number to reduce stock.
                   </p>
                 </div>
 
@@ -4997,7 +4294,7 @@ function App() {
                 }
               >
                 <div className="form-grid">
-                  <div className="form-group full-span">
+                  <div className="form-group">
                     <label>
                       Product *
                     </label>
@@ -5019,21 +4316,10 @@ function App() {
                       {products.map(
                         (product) => (
                           <option
-                            key={
-                              product.id
-                            }
-                            value={
-                              product.id
-                            }
+                            key={product.id}
+                            value={product.id}
                           >
-                            {
-                              product.name
-                            }{" "}
-                            -{" "}
-                            {
-                              product.partNumber ||
-                              "No Part Number"
-                            }
+                            {product.name}
                           </option>
                         )
                       )}
@@ -5062,16 +4348,10 @@ function App() {
                       {locations.map(
                         (location) => (
                           <option
-                            key={
-                              location.id
-                            }
-                            value={
-                              location.id
-                            }
+                            key={location.id}
+                            value={location.id}
                           >
-                            {
-                              location.name
-                            }
+                            {location.name}
                           </option>
                         )
                       )}
@@ -5085,7 +4365,6 @@ function App() {
 
                     <input
                       type="number"
-                      step="1"
                       name="adjustmentQuantity"
                       value={
                         adjustmentForm.adjustmentQuantity
@@ -5093,33 +4372,11 @@ function App() {
                       onChange={
                         handleAdjustmentFormChange
                       }
-                      placeholder="5 or -5"
+                      placeholder="Example: 10 or -5"
                       required
                     />
-
-                    <small>
-                      Example:
-                      <strong>
-                        +5
-                      </strong>{" "}
-                      adds five
-                      units;
-                      <strong>
-                        -5
-                      </strong>{" "}
-                      removes five
-                      units.
-                    </small>
                   </div>
                 </div>
-
-                {inventoryActionError && (
-                  <div className="alert alert-error">
-                    {
-                      inventoryActionError
-                    }
-                  </div>
-                )}
 
                 <div className="modal-actions">
                   <button
@@ -5153,13 +4410,694 @@ function App() {
   }
 
   // =========================================================
+  // REPORTS PAGE - DAY 17
+  // =========================================================
+
+  function ReportsPage() {
+    const dashboard = reports.dashboard || {};
+
+    const sales = reports.sales || {
+      totalInvoices: 0,
+      totalSales: 0,
+      totalItemsSold: 0,
+      sales: [],
+    };
+
+    const purchaseReport =
+      reports.purchases || {
+        totalInvoices: 0,
+        totalPurchases: 0,
+        totalItemsPurchased: 0,
+        purchases: [],
+      };
+
+    return (
+      <div className="reports-page">
+        <div className="page-heading">
+          <div>
+            <h2>Reports & Analytics</h2>
+
+            <p>
+              Inventory, sales, purchase and
+              location reports
+            </p>
+          </div>
+
+          <button
+            className="secondary-button"
+            onClick={fetchReports}
+            disabled={reportsLoading}
+          >
+            {reportsLoading
+              ? "Loading..."
+              : "↻ Refresh Reports"}
+          </button>
+        </div>
+
+        {reportsError && (
+          <div className="alert alert-error">
+            {reportsError}
+          </div>
+        )}
+
+        {reportsLoading &&
+        !reports.dashboard ? (
+          <div className="empty-state">
+            Loading reports...
+          </div>
+        ) : (
+          <>
+            {/* SUMMARY */}
+
+            <div className="report-summary-grid">
+              <div className="report-card">
+                <span>Total Products</span>
+
+                <strong>
+                  {dashboard.totalProducts || 0}
+                </strong>
+              </div>
+
+              <div className="report-card">
+                <span>Total Stock</span>
+
+                <strong>
+                  {dashboard.totalStock || 0}
+                </strong>
+              </div>
+
+              <div className="report-card">
+                <span>Low Stock</span>
+
+                <strong>
+                  {dashboard.lowStock || 0}
+                </strong>
+              </div>
+
+              <div className="report-card">
+                <span>Inventory Value</span>
+
+                <strong>
+                  ₹
+                  {Number(
+                    dashboard.inventoryValue ||
+                      0
+                  ).toFixed(2)}
+                </strong>
+              </div>
+
+              <div className="report-card">
+                <span>Total Purchases</span>
+
+                <strong>
+                  ₹
+                  {Number(
+                    dashboard.totalPurchases ||
+                      0
+                  ).toFixed(2)}
+                </strong>
+              </div>
+
+              <div className="report-card">
+                <span>Total Sales</span>
+
+                <strong>
+                  ₹
+                  {Number(
+                    dashboard.totalSales ||
+                      0
+                  ).toFixed(2)}
+                </strong>
+              </div>
+            </div>
+
+            {/* LOCATION REPORT */}
+
+            <section className="report-section">
+              <div className="section-header">
+                <div>
+                  <h3>
+                    Location-wise Inventory
+                  </h3>
+
+                  <p>
+                    Stock available at each
+                    location
+                  </p>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="report-table">
+                  <thead>
+                    <tr>
+                      <th>Location</th>
+                      <th>Rack</th>
+                      <th>Shelf</th>
+                      <th>Section</th>
+                      <th>Products</th>
+                      <th>Total Stock</th>
+                      <th>Inventory Value</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {reports.location.length ===
+                    0 ? (
+                      <tr>
+                        <td
+                          colSpan="7"
+                          className="empty-table"
+                        >
+                          No location data
+                          available.
+                        </td>
+                      </tr>
+                    ) : (
+                      reports.location.map(
+                        (location) => (
+                          <tr
+                            key={
+                              location.locationId
+                            }
+                          >
+                            <td>
+                              <strong>
+                                {
+                                  location.locationName
+                                }
+                              </strong>
+                            </td>
+
+                            <td>
+                              {location.rack ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {location.shelf ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {location.section ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {
+                                location.totalProducts
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                location.totalStock
+                              }
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                location.inventoryValue ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* CATEGORY REPORT */}
+
+            <section className="report-section">
+              <div className="section-header">
+                <div>
+                  <h3>
+                    Category-wise Inventory
+                  </h3>
+
+                  <p>
+                    Stock grouped by category
+                  </p>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="report-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Products</th>
+                      <th>Total Stock</th>
+                      <th>Inventory Value</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {reports.category.length ===
+                    0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="empty-table"
+                        >
+                          No category data
+                          available.
+                        </td>
+                      </tr>
+                    ) : (
+                      reports.category.map(
+                        (category) => (
+                          <tr
+                            key={
+                              category.categoryId
+                            }
+                          >
+                            <td>
+                              <strong>
+                                {
+                                  category.categoryName
+                                }
+                              </strong>
+                            </td>
+
+                            <td>
+                              {
+                                category.totalProducts
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                category.totalStock
+                              }
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                category.inventoryValue ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* DETAILED INVENTORY REPORT */}
+
+            <section className="report-section">
+              <div className="section-header">
+                <div>
+                  <h3>
+                    Detailed Inventory Report
+                  </h3>
+
+                  <p>
+                    Search and filter all
+                    inventory records
+                  </p>
+                </div>
+              </div>
+
+              <div className="report-filters">
+                <input
+                  type="text"
+                  value={
+                    reportInventorySearch
+                  }
+                  onChange={(event) =>
+                    setReportInventorySearch(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Search product, part number or location..."
+                />
+
+                <select
+                  value={
+                    reportLocationFilter
+                  }
+                  onChange={(event) =>
+                    setReportLocationFilter(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    All Locations
+                  </option>
+
+                  {reports.location.map(
+                    (location) => (
+                      <option
+                        key={
+                          location.locationId
+                        }
+                        value={
+                          location.locationId
+                        }
+                      >
+                        {
+                          location.locationName
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+
+                <select
+                  value={
+                    reportCategoryFilter
+                  }
+                  onChange={(event) =>
+                    setReportCategoryFilter(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    All Categories
+                  </option>
+
+                  {[
+                    ...new Set(
+                      reports.inventory
+                        .map(
+                          (item) =>
+                            item.category
+                        )
+                        .filter(Boolean)
+                    ),
+                  ].map((category) => (
+                    <option
+                      key={category}
+                      value={category}
+                    >
+                      {category}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={reportStatusFilter}
+                  onChange={(event) =>
+                    setReportStatusFilter(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    All Status
+                  </option>
+
+                  <option value="NORMAL">
+                    NORMAL
+                  </option>
+
+                  <option value="LOW STOCK">
+                    LOW STOCK
+                  </option>
+
+                  <option value="OUT OF STOCK">
+                    OUT OF STOCK
+                  </option>
+                </select>
+
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setReportInventorySearch("");
+                    setReportLocationFilter("");
+                    setReportCategoryFilter("");
+                    setReportStatusFilter("");
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="table-container">
+                <table className="report-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Part Number</th>
+                      <th>Category</th>
+                      <th>Brand</th>
+                      <th>Location</th>
+                      <th>Rack</th>
+                      <th>Shelf</th>
+                      <th>Stock</th>
+                      <th>Minimum</th>
+                      <th>Selling Price</th>
+                      <th>Value</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredReportInventory.length ===
+                    0 ? (
+                      <tr>
+                        <td
+                          colSpan="12"
+                          className="empty-table"
+                        >
+                          No inventory records
+                          match your filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredReportInventory.map(
+                        (item) => (
+                          <tr key={item.id}>
+                            <td>
+                              <strong>
+                                {
+                                  item.productName
+                                }
+                              </strong>
+                            </td>
+
+                            <td>
+                              {
+                                item.partNumber ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.category ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.brand ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.location
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.rack ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.shelf ||
+                                "-"
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.quantity
+                              }
+                            </td>
+
+                            <td>
+                              {
+                                item.minimumStock
+                              }
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                item.sellingPrice ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+
+                            <td>
+                              ₹
+                              {Number(
+                                item.inventoryValue ||
+                                  0
+                              ).toFixed(2)}
+                            </td>
+
+                            <td>
+                              <span
+                                className={
+                                  item.status ===
+                                  "OUT OF STOCK"
+                                    ? "inventory-status low"
+                                    : item.status ===
+                                      "LOW STOCK"
+                                    ? "inventory-status low"
+                                    : "inventory-status normal"
+                                }
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* SALES AND PURCHASE SUMMARY */}
+
+            <div className="report-two-column">
+              <section className="report-section">
+                <div className="section-header">
+                  <div>
+                    <h3>
+                      Sales Summary
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="mini-report">
+                  <div>
+                    <span>
+                      Total Invoices
+                    </span>
+
+                    <strong>
+                      {
+                        sales.totalInvoices
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Items Sold
+                    </span>
+
+                    <strong>
+                      {
+                        sales.totalItemsSold
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Total Sales
+                    </span>
+
+                    <strong>
+                      ₹
+                      {Number(
+                        sales.totalSales ||
+                          0
+                      ).toFixed(2)}
+                    </strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="report-section">
+                <div className="section-header">
+                  <div>
+                    <h3>
+                      Purchase Summary
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="mini-report">
+                  <div>
+                    <span>
+                      Total Invoices
+                    </span>
+
+                    <strong>
+                      {
+                        purchaseReport.totalInvoices
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Items Purchased
+                    </span>
+
+                    <strong>
+                      {
+                        purchaseReport.totalItemsPurchased
+                      }
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Total Purchases
+                    </span>
+
+                    <strong>
+                      ₹
+                      {Number(
+                        purchaseReport.totalPurchases ||
+                          0
+                      ).toFixed(2)}
+                    </strong>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================
   // MAIN APPLICATION
   // =========================================================
 
   return (
     <div className="app">
-      {/* HEADER */}
-
       <header className="top-header">
         <div className="brand-section">
           <div className="brand-logo">
@@ -5167,10 +5105,7 @@ function App() {
           </div>
 
           <div>
-            <h1>
-              Sri Vengamamba
-            </h1>
-
+            <h1>Sri Vengamamba</h1>
             <span>
               Oils & Automobiles
             </span>
@@ -5180,41 +5115,32 @@ function App() {
         <div className="user-section">
           <div className="user-info">
             <strong>
-              {user?.name ||
-                "Admin"}
+              {user?.name || "Admin"}
             </strong>
 
             <span>
-              {user?.role ||
-                "ADMIN"}
+              {user?.role || "ADMIN"}
             </span>
           </div>
 
           <button
             className="logout-button"
-            onClick={
-              handleLogout
-            }
+            onClick={handleLogout}
           >
             Logout
           </button>
         </div>
       </header>
 
-      {/* NAVIGATION */}
-
       <nav className="navigation">
         <button
           className={
-            activePage ===
-            "dashboard"
+            activePage === "dashboard"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "dashboard"
-            )
+            setActivePage("dashboard")
           }
         >
           Dashboard
@@ -5222,15 +5148,25 @@ function App() {
 
         <button
           className={
-            activePage ===
-            "purchases"
+            activePage === "inventory"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "purchases"
-            )
+            setActivePage("inventory")
+          }
+        >
+          Inventory
+        </button>
+
+        <button
+          className={
+            activePage === "purchases"
+              ? "nav-button active"
+              : "nav-button"
+          }
+          onClick={() =>
+            setActivePage("purchases")
           }
         >
           Purchases
@@ -5251,15 +5187,12 @@ function App() {
 
         <button
           className={
-            activePage ===
-            "suppliers"
+            activePage === "suppliers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "suppliers"
-            )
+            setActivePage("suppliers")
           }
         >
           Suppliers
@@ -5267,86 +5200,70 @@ function App() {
 
         <button
           className={
-            activePage ===
-            "customers"
+            activePage === "customers"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "customers"
-            )
+            setActivePage("customers")
           }
         >
           Customers
         </button>
 
-        {/* DAY 16 */}
+        {/* DAY 17 */}
 
         <button
           className={
-            activePage ===
-            "inventory"
+            activePage === "reports"
               ? "nav-button active"
               : "nav-button"
           }
           onClick={() =>
-            setActivePage(
-              "inventory"
-            )
+            setActivePage("reports")
           }
         >
-          Inventory
+          Reports
         </button>
       </nav>
 
-      {/* PAGE */}
-
       <main className="main-content">
-        {activePage ===
-          "dashboard" && (
+        {activePage === "dashboard" && (
           <DashboardPage />
         )}
 
-        {activePage ===
-          "purchases" && (
+        {activePage === "inventory" && (
+          <InventoryPage />
+        )}
+
+        {activePage === "purchases" && (
           <PurchasesPage />
         )}
 
-        {activePage ===
-          "sales" && (
+        {activePage === "sales" && (
           <SalesPage />
         )}
 
-        {activePage ===
-          "suppliers" && (
+        {activePage === "suppliers" && (
           <SuppliersPage />
         )}
 
-        {activePage ===
-          "customers" && (
+        {activePage === "customers" && (
           <CustomersPage />
         )}
 
-        {activePage ===
-          "inventory" && (
-          <InventoryPage />
+        {activePage === "reports" && (
+          <ReportsPage />
         )}
       </main>
 
-      {/* FOOTER */}
-
       <footer className="app-footer">
-        Sri Vengamamba Oils &
-        Automobiles
-
+        Sri Vengamamba Oils & Automobiles
         <span>•</span>
-
-        Inventory Management
-        System
+        Inventory Management System
       </footer>
     </div>
   );
 }
 
-export default App; 
+export default App;
