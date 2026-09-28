@@ -5,9 +5,9 @@ const cors = require("cors");
 
 const prisma = require("./lib/prisma");
 
-// Routes
 const healthRoutes = require("./routes/healthRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const brandRoutes = require("./routes/brandRoutes");
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const locationRoutes = require("./routes/locationRoutes");
@@ -17,31 +17,50 @@ const customerRoutes = require("./routes/customerRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
 const saleRoutes = require("./routes/saleRoutes");
 const reportRoutes = require("./routes/reportRoutes");
-const brandRoutes = require("./routes/brandRoutes");
 
 const app = express();
 
 const PORT = process.env.PORT || 5000;
 
-// ===============================
-// MIDDLEWARE
-// ===============================
+/* =========================================================
+   CORS CONFIGURATION
+========================================================= */
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:4173",
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:4173",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header
+      // such as Postman or direct server requests.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
+
+/* =========================================================
+   BODY PARSING
+========================================================= */
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===============================
-// ROOT ROUTE
-// ===============================
+/* =========================================================
+   ROOT API
+========================================================= */
 
 app.get("/", (req, res) => {
   res.json({
@@ -50,15 +69,13 @@ app.get("/", (req, res) => {
   });
 });
 
-// ===============================
-// DATABASE TEST ROUTE
-// ===============================
+/* =========================================================
+   DATABASE TEST
+========================================================= */
 
 app.get("/api/test-db", async (req, res) => {
   try {
-    const result = await prisma.$queryRaw`
-      SELECT NOW()
-    `;
+    const result = await prisma.$queryRaw`SELECT NOW()`;
 
     res.json({
       success: true,
@@ -76,15 +93,17 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 
-// ===============================
-// API ROUTES
-// ===============================
+/* =========================================================
+   API ROUTES
+========================================================= */
 
 app.use("/api/health", healthRoutes);
 
 app.use("/api/auth", authRoutes);
 
 app.use("/api/categories", categoryRoutes);
+
+app.use("/api/brands", brandRoutes);
 
 app.use("/api/products", productRoutes);
 
@@ -102,11 +121,9 @@ app.use("/api/sales", saleRoutes);
 
 app.use("/api/reports", reportRoutes);
 
-app.use("/api/brands", brandRoutes);
-
-// ===============================
-// 404 ROUTE
-// ===============================
+/* =========================================================
+   404 HANDLER
+========================================================= */
 
 app.use((req, res) => {
   res.status(404).json({
@@ -116,9 +133,9 @@ app.use((req, res) => {
   });
 });
 
-// ===============================
-// ERROR HANDLER
-// ===============================
+/* =========================================================
+   GLOBAL ERROR HANDLER
+========================================================= */
 
 app.use((error, req, res, next) => {
   console.error("Unhandled server error:", error);
@@ -130,10 +147,12 @@ app.use((error, req, res, next) => {
   });
 });
 
-// ===============================
-// START SERVER
-// ===============================
+/* =========================================================
+   START SERVER
+========================================================= */
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `Sri Vengamamba Inventory API running on port ${PORT}`
+  );
 });
