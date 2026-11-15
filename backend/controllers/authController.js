@@ -1,13 +1,18 @@
+
 const bcrypt = require("bcryptjs");
 
 const prisma = require("../lib/prisma");
 const { generateToken } = require("../utils/jwt");
 
-// Register user
+// ==========================================
+// REGISTER USER
+// ==========================================
+
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
+    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -15,6 +20,7 @@ const register = async (req, res) => {
       });
     }
 
+    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -22,8 +28,10 @@ const register = async (req, res) => {
       });
     }
 
+    // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Check whether email already exists
     const existingUser = await prisma.user.findUnique({
       where: {
         email: normalizedEmail,
@@ -37,17 +45,20 @@ const register = async (req, res) => {
       });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user with STAFF role only
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
         email: normalizedEmail,
         password: hashedPassword,
-        role: role || "STAFF",
+        role: "STAFF",
       },
     });
 
+    // Generate JWT token
     const token = generateToken(user);
 
     return res.status(201).json({
@@ -74,11 +85,15 @@ const register = async (req, res) => {
   }
 };
 
-// Login user
+// ==========================================
+// LOGIN USER
+// ==========================================
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -86,8 +101,10 @@ const login = async (req, res) => {
       });
     }
 
+    // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Find user
     const user = await prisma.user.findUnique({
       where: {
         email: normalizedEmail,
@@ -101,6 +118,7 @@ const login = async (req, res) => {
       });
     }
 
+    // Compare password
     const passwordMatches = await bcrypt.compare(
       password,
       user.password
@@ -113,6 +131,7 @@ const login = async (req, res) => {
       });
     }
 
+    // Generate JWT token
     const token = generateToken(user);
 
     return res.json({
@@ -138,6 +157,10 @@ const login = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// EXPORT CONTROLLERS
+// ==========================================
 
 module.exports = {
   register,
