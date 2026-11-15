@@ -26,8 +26,14 @@ const PORT = process.env.PORT || 5000;
    CORS CONFIGURATION
 ========================================================= */
 
+
+/* =========================================================
+   CORS CONFIGURATION
+========================================================= */
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://sri-vengamamba-frontend.onrender.com",
   "http://localhost:5173",
   "http://localhost:4173",
 ].filter(Boolean);
@@ -35,8 +41,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header
-      // such as Postman or direct server requests.
+      // Allow requests without an Origin header (e.g. Postman)
       if (!origin) {
         return callback(null, true);
       }
@@ -45,11 +50,15 @@ app.use(
         return callback(null, true);
       }
 
+      console.error("Blocked by CORS:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 
 /* =========================================================
    BODY PARSING
